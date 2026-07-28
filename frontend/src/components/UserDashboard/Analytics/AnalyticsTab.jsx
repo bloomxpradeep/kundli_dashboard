@@ -59,7 +59,7 @@ export default function AnalyticsTab({ loading, kundliOrders }) {
               if (loading) return <div className="h-full flex items-center justify-center text-text-muted text-xs">Loading data...</div>;
               
               const counts = kundliOrders.reduce((acc, order) => {
-                const s = order.status || 'unknown';
+                const s = (order.kundli_status || order.status) || 'unknown';
                 acc[s] = (acc[s] || 0) + 1;
                 return acc;
               }, {});
@@ -90,7 +90,7 @@ export default function AnalyticsTab({ loading, kundliOrders }) {
               if (loading) return <div className="h-full flex items-center justify-center text-text-muted text-xs">Loading data...</div>;
               
               const counts = kundliOrders.reduce((acc, order) => {
-                const t = order.report_type || 'Standard';
+                const t = order.report_type || order.report_name || 'Standard';
                 acc[t] = (acc[t] || 0) + 1;
                 return acc;
               }, {});

@@ -5,7 +5,7 @@ exports.getDashboard = async (req, res) => {
     const [transRes, astrologerRes, ordersRes] = await Promise.all([
       supabaseAdmin.from('credit_transactions').select('*').eq('astrologer_id', req.user.id).order('created_at', { ascending: false }),
       supabaseAdmin.from('astrologers').select('credits_balance').eq('id', req.user.id).single(),
-      supabaseAdmin.from('kundli_orders').select('*').order('created_at', { ascending: false })
+      supabaseAdmin.from('sheet_orders').select('*').order('created_at', { ascending: false })
     ]);
 
     res.status(200).json({

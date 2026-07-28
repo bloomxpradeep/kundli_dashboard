@@ -2,7 +2,7 @@ import React from 'react';
 import Modal from '../../Shared/Modal/Modal';
 import { ExternalLink, Copy } from 'lucide-react';
 
-export default function OrderDetailsModal({ selectedOrder, setSelectedOrder, addToast }) {
+export default function OrderDetailsModal({ selectedOrder, setSelectedOrder, addToast, isAdmin = false }) {
   return (
     <Modal
       isOpen={!!selectedOrder}
@@ -40,13 +40,13 @@ export default function OrderDetailsModal({ selectedOrder, setSelectedOrder, add
               <div>
                 <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">Date of Birth</span>
                 <span className="font-medium text-text-main text-sm">
-                  {selectedOrder.dob_day ? `${selectedOrder.dob_day}/${selectedOrder.dob_month}/${selectedOrder.dob_year}` : selectedOrder.date_of_birth || '-'}
+                  {selectedOrder.dob_day ? `${selectedOrder.dob_day}/${selectedOrder.dob_month}/${selectedOrder.dob_year}` : (selectedOrder.date_of_birth || '-')}
                 </span>
               </div>
               <div>
                 <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">Time of Birth</span>
                 <span className="font-medium text-text-main text-sm">
-                  {selectedOrder.birth_hour != null ? `${String(selectedOrder.birth_hour).padStart(2, '0')}:${String(selectedOrder.birth_min || 0).padStart(2, '0')}` : selectedOrder.time_of_birth || '-'} {selectedOrder.am_pm}
+                  {selectedOrder.birth_hour != null ? `${String(selectedOrder.birth_hour).padStart(2, '0')}:${String(selectedOrder.birth_min || 0).padStart(2, '0')} ${selectedOrder.am_pm || ''}` : (selectedOrder.time_of_birth || '-')}
                 </span>
               </div>
               <div>
@@ -58,16 +58,16 @@ export default function OrderDetailsModal({ selectedOrder, setSelectedOrder, add
               
               <div>
                 <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">Place of Birth</span>
-                <span className="font-medium text-text-main text-sm">{selectedOrder.place || '-'}</span>
+                <span className="font-medium text-text-main text-sm">{selectedOrder.place_of_birth || selectedOrder.place || '-'}</span>
               </div>
               <div>
                 <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">State / Pincode</span>
-                <span className="font-medium text-text-main text-sm">{selectedOrder.state || '-'} {selectedOrder.pincode}</span>
+                <span className="font-medium text-text-main text-sm">{selectedOrder.state || '-'} {selectedOrder.pin_code || selectedOrder.pincode}</span>
               </div>
               <div>
                 <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">Coordinates (Lat/Lon)</span>
                 <span className="font-medium text-text-main font-mono text-xs">
-                  {selectedOrder.lat != null ? `${selectedOrder.lat}, ${selectedOrder.lon}` : '-'} <span className="text-text-muted">(TZ: {selectedOrder.tzone != null ? selectedOrder.tzone : '-'})</span>
+                  {(selectedOrder.latitude != null || selectedOrder.lat != null) ? `${selectedOrder.latitude || selectedOrder.lat}, ${selectedOrder.longitude || selectedOrder.lon}` : '-'} <span className="text-text-muted">(TZ: {selectedOrder.tzone != null ? selectedOrder.tzone : '-'})</span>
                 </span>
               </div>
             </div>
@@ -79,26 +79,42 @@ export default function OrderDetailsModal({ selectedOrder, setSelectedOrder, add
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-neutral-50 p-4 rounded-xl border border-border-subtle">
               <div>
                 <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">Report Tier</span>
-                <span className="font-medium text-text-main text-sm capitalize">{selectedOrder.report_tier || '-'}</span>
+                <span className="font-medium text-text-main text-sm capitalize">{selectedOrder.report_tier || selectedOrder.report_name || '-'}</span>
               </div>
               <div>
                 <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">Language</span>
-                <span className="font-medium text-text-main text-sm capitalize">{selectedOrder.language || selectedOrder.lang || '-'}</span>
+                <span className="font-medium text-text-main text-sm capitalize">{selectedOrder.language || selectedOrder.lang || selectedOrder.report_language || '-'}</span>
               </div>
               <div>
                 <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">Amount Paid</span>
                 <span className="font-medium text-text-main text-sm">
-                  {selectedOrder.amount_rupees ? `₹${selectedOrder.amount_rupees}` : (selectedOrder.amount_paise ? `₹${selectedOrder.amount_paise}` : '-')} {selectedOrder.currency}
+                  {selectedOrder.order_total_amount ? `₹${selectedOrder.order_total_amount}` : (selectedOrder.amount_rupees ? `₹${selectedOrder.amount_rupees}` : (selectedOrder.amount_paise ? `₹${selectedOrder.amount_paise}` : '-'))} {selectedOrder.currency}
                 </span>
               </div>
+              {isAdmin && (
+                <>
+                  <div>
+                    <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">Base Cost (Raw)</span>
+                    <span className="font-medium text-text-main text-sm">
+                      {selectedOrder.order_total_amount_raw ? `₹${selectedOrder.order_total_amount_raw}` : '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">Drive Save Attempts</span>
+                    <span className="font-medium text-text-main text-sm">
+                      {selectedOrder.kundli_attempts != null ? selectedOrder.kundli_attempts : '-'}
+                    </span>
+                  </div>
+                </>
+              )}
               <div>
                 <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">Status</span>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                  ['paid', 'generated_no_archive', 'archived'].includes(selectedOrder.status)
+                  ['paid', 'generated_no_archive', 'archived'].includes((selectedOrder.kundli_status || selectedOrder.status))
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                     : 'bg-amber-50 text-amber-700 border border-amber-100'
                 }`}>
-                  {selectedOrder.status || 'unknown'}
+                  {(selectedOrder.kundli_status || selectedOrder.status) || 'unknown'}
                 </span>
               </div>
               
@@ -106,7 +122,7 @@ export default function OrderDetailsModal({ selectedOrder, setSelectedOrder, add
               
               <div className="col-span-2 md:col-span-1">
                 <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">Payment ID</span>
-                <span className="font-medium text-text-main font-mono text-[11px] break-all">{selectedOrder.payment_id || '-'}</span>
+                <span className="font-medium text-text-main font-mono text-[11px] break-all">{selectedOrder.payment_id || selectedOrder.payment_status || '-'}</span>
               </div>
               <div className="col-span-1">
                 <span className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">Order Timestamp</span>
@@ -122,14 +138,14 @@ export default function OrderDetailsModal({ selectedOrder, setSelectedOrder, add
           {/* Delivery Output Full Width */}
           <div className="pt-2 border-t border-border-subtle">
             <h4 className="text-[11px] font-bold text-text-main uppercase tracking-wider mb-3">Delivery Output</h4>
-            {selectedOrder.drive_link ? (
+            {(selectedOrder.kundli_drive_link || selectedOrder.drive_link) ? (
               <div className="flex items-center gap-3">
-                <a href={selectedOrder.drive_link} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-sm font-semibold flex items-center gap-2 transition">
+                <a href={selectedOrder.kundli_drive_link || selectedOrder.drive_link} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-sm font-semibold flex items-center gap-2 transition">
                   <ExternalLink size={16} /> Open Drive Link
                 </a>
                 <button 
                   onClick={() => {
-                    navigator.clipboard.writeText(selectedOrder.drive_link);
+                    navigator.clipboard.writeText(selectedOrder.kundli_drive_link || selectedOrder.drive_link);
                     addToast('Link copied to clipboard', 'success');
                   }}
                   className="px-5 py-2.5 bg-neutral-100 text-text-main hover:bg-neutral-200 rounded-xl text-sm font-semibold flex items-center gap-2 transition"
@@ -137,9 +153,9 @@ export default function OrderDetailsModal({ selectedOrder, setSelectedOrder, add
                   <Copy size={16} /> Copy URL
                 </button>
               </div>
-            ) : selectedOrder.error_detail ? (
+            ) : (selectedOrder.kundli_error || selectedOrder.error_detail) ? (
               <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700 font-mono text-xs break-all whitespace-pre-wrap">
-                {selectedOrder.error_detail}
+                {selectedOrder.kundli_error || selectedOrder.error_detail}
               </div>
             ) : (
               <p className="text-sm text-text-muted italic bg-neutral-50 border border-border-subtle rounded-xl p-4 text-center">No delivery output generated yet.</p>

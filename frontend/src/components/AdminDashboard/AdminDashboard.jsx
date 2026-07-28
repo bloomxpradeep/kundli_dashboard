@@ -298,7 +298,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     return kundliOrders.filter(o => 
-      ['paid', 'generated_no_archive', 'archived', 'generating'].includes(o.status) && 
+      ['paid', 'generated_no_archive', 'archived', 'generating'].includes(o.kundli_status) && 
       new Date(o.created_at) >= cutoff
     ).length;
   };
@@ -441,6 +441,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
         selectedOrder={selectedOrder}
         setSelectedOrder={setSelectedOrder}
         addToast={addToast}
+        isAdmin={true}
       />
     </div>
   );

@@ -105,7 +105,7 @@ exports.getDashboard = async (req, res) => {
         *,
         astrologers ( name, username )
       `).order('created_at', { ascending: false }),
-      supabaseAdmin.from('kundli_orders').select('*').order('created_at', { ascending: false })
+      supabaseAdmin.from('sheet_orders').select('*').order('created_at', { ascending: false })
     ]);
 
     // Calculate global stats dynamically instead of company_settings

@@ -64,7 +64,7 @@ export default function OrdersTab({
             </div>
           </div>
           <div className="text-2xl font-bold text-emerald-600">
-            {kundliOrders.filter(o => o.status?.toLowerCase() === 'delivered').length}
+            {kundliOrders.filter(o => (o.kundli_status || o.status)?.toLowerCase() === 'delivered').length}
           </div>
           <span className="text-[10px] text-text-muted">Successfully delivered</span>
         </div>
@@ -79,7 +79,7 @@ export default function OrdersTab({
           </div>
           <div className="text-2xl font-bold text-amber-600">
             {kundliOrders.filter(o => {
-              if (o.status?.toLowerCase() === 'delivered' || ['failed', 'drive_failed'].includes(o.status)) return false;
+              if ((o.kundli_status || o.status)?.toLowerCase() === 'delivered' || ['failed', 'drive_failed'].includes((o.kundli_status || o.status))) return false;
               if (Date.now() - new Date(o.created_at).getTime() > 24 * 60 * 60 * 1000) return false;
               return true;
             }).length}
@@ -97,7 +97,7 @@ export default function OrdersTab({
           </div>
           <div className="text-2xl font-bold text-red-600">
             {kundliOrders.filter(o => {
-              if (o.status?.toLowerCase() === 'delivered' || ['failed', 'drive_failed'].includes(o.status)) return false;
+              if ((o.kundli_status || o.status)?.toLowerCase() === 'delivered' || ['failed', 'drive_failed'].includes((o.kundli_status || o.status))) return false;
               if (Date.now() - new Date(o.created_at).getTime() > 24 * 60 * 60 * 1000) return true;
               return false;
             }).length}
@@ -114,7 +114,7 @@ export default function OrdersTab({
             </div>
           </div>
           <div className="text-2xl font-bold text-red-600">
-            {kundliOrders.filter(o => ['failed', 'drive_failed'].includes(o.status)).length}
+            {kundliOrders.filter(o => ['failed', 'drive_failed'].includes((o.kundli_status || o.status))).length}
           </div>
           <span className="text-[10px] text-text-muted">Generation failed</span>
         </div>
@@ -175,29 +175,29 @@ export default function OrdersTab({
                       </td>
                       <td className="p-4 align-middle whitespace-nowrap">
                         <div className="flex flex-col gap-0.5">
-                          <span className="font-semibold text-text-main capitalize">{order.report_tier || 'Standard'}</span>
-                          <span className="text-[10px] text-text-muted capitalize">{order.language || order.lang || 'English'}</span>
+                          <span className="font-semibold text-text-main capitalize">{order.report_tier || order.report_name || 'Standard'}</span>
+                          <span className="text-[10px] text-text-muted capitalize">{order.language || order.lang || order.report_language || 'English'}</span>
                         </div>
                       </td>
                       <td className="p-4 align-middle whitespace-nowrap">
                         <span className="font-medium text-text-main">
-                          {order.amount_rupees ? `₹${order.amount_rupees}` : (order.amount_paise ? `₹${order.amount_paise}` : '-')}
+                          {order.order_total_amount ? `₹${order.order_total_amount}` : (order.amount_rupees ? `₹${order.amount_rupees}` : (order.amount_paise ? `₹${order.amount_paise}` : '-'))}
                         </span>
                       </td>
                       <td className="p-4 align-middle whitespace-nowrap">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                          ['paid', 'generated_no_archive', 'archived'].includes(order.status)
+                          ['paid', 'generated_no_archive', 'archived'].includes((order.kundli_status || order.status))
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                             : 'bg-amber-50 text-amber-700 border border-amber-100'
                         }`}>
-                          {order.status || 'unknown'}
+                          {(order.kundli_status || order.status) || 'unknown'}
                         </span>
                       </td>
                       <td className="p-4 align-middle text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {order.drive_link && (
+                          {(order.kundli_drive_link || order.drive_link) && (
                             <a 
-                              href={order.drive_link} 
+                              href={order.kundli_drive_link || order.drive_link} 
                               target="_blank" 
                               rel="noopener noreferrer" 
                               className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 rounded-lg shadow-sm text-[11px] font-semibold flex items-center gap-1.5 transition"
