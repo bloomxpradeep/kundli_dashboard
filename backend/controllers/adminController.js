@@ -111,24 +111,13 @@ exports.getDashboard = async (req, res) => {
     ]);
 
     // Calculate global stats dynamically instead of company_settings
-    // Calculate total credits available from the latest balance_after of each user
-    const total_credits_available = (usersRes.data || []).reduce((sum, u) => sum + parseInt(u.balance_after || '0', 10), 0);
+    // Calculate total credits available from the latest credits_balance of each user
+    const total_credits_available = (usersRes.data || []).reduce((sum, u) => sum + parseInt(u.credits_balance || '0', 10), 0);
     
-    // Inject balance_after into users so the admin dashboard dropdowns/tables show the correct balance
-
-    const userBalances = {};
-    const mappedUsers = (usersRes.data || []).map(u => {
-      userBalances[u.id] = parseInt(u.balance_after || '0', 10);
-      return {
-        ...u,
-        credits_balance: parseInt(u.balance_after || '0', 10)
-      };
-    });
-
     const transactionsWithBalance = transRes.data || [];
     
     res.status(200).json({
-      users: mappedUsers,
+      users: usersRes.data || [],
       transactions: transactionsWithBalance,
       companySettings: { total_credits: total_credits_available }, // Shim for backward compatibility
       orders: ordersRes.data || []
