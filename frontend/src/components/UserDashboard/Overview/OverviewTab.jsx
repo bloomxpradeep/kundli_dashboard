@@ -34,12 +34,12 @@ export default function OverviewTab({
               <span className="text-[10px] text-text-muted leading-tight">
                 Use these credits to request custom Kundli files
               </span>
-              <button 
+              {/* <button 
                 onClick={() => setIsCreditPurchaseModalOpen(true)}
                 className="px-3 py-1.5 bg-neutral-950 text-white rounded-lg hover:bg-neutral-800 transition shadow-sm font-semibold text-[10px] flex-shrink-0 cursor-pointer"
               >
                 + Buy Credits
-              </button>
+              </button> */}
             </div>
           </div>
         </div>

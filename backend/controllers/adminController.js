@@ -52,13 +52,14 @@ exports.allocateCredits = async (req, res) => {
     // 1. Get current user credits
     const { data: astrologerData, error: fetchError } = await supabaseAdmin
       .from('astrologers')
-      .select('credits_balance')
+      .select('credits_balance, balance_after')
       .eq('id', targetUserId)
       .single();
 
     if (fetchError) throw fetchError;
     
-    const newBalance = (astrologerData?.credits_balance || 0) + amount;
+    const newCreditsBalance = (astrologerData?.credits_balance || 0) + amount;
+    const newBalanceAfter = parseInt(astrologerData?.balance_after || '0', 10) + amount;
 
     // 2. Log transaction FIRST (Safer to do this first so we can roll back if balance update fails)
     const { data: transaction, error: transactionError } = await supabaseAdmin
@@ -67,7 +68,7 @@ exports.allocateCredits = async (req, res) => {
         astrologer_id: targetUserId,
         type: 'assign',
         amount: amount,
-        total_credits_assigned: amount,
+        total_credits_assigned: newBalanceAfter.toString(),
         note: reason || 'Manual Admin Allocation',
         created_by: adminEmail || 'Admin'
       })
@@ -80,7 +81,8 @@ exports.allocateCredits = async (req, res) => {
     const { error: updateError } = await supabaseAdmin
       .from('astrologers')
       .update({ 
-        credits_balance: newBalance
+        credits_balance: newCreditsBalance,
+        balance_after: newBalanceAfter.toString()
       })
       .eq('id', targetUserId);
 
@@ -90,7 +92,7 @@ exports.allocateCredits = async (req, res) => {
       throw updateError;
     }
 
-    res.status(200).json({ message: 'Credits allocated successfully', newBalance });
+    res.status(200).json({ message: 'Credits allocated successfully', newBalance: newBalanceAfter });
   } catch (error) {
     console.error('Error in /api/admin/credits/allocate:', error);
     res.status(500).json({ error: error.message });
@@ -109,16 +111,26 @@ exports.getDashboard = async (req, res) => {
     ]);
 
     // Calculate global stats dynamically instead of company_settings
-    // Fallback: Just calculate it based on total assigned transactions if needed
-    const total_credits_assigned = (transRes.data || []).filter(t => t.type === 'assign').reduce((acc, t) => acc + (t.amount || 0), 0);
+    // Calculate total credits available from the latest balance_after of each user
+    const total_credits_available = (usersRes.data || []).reduce((sum, u) => sum + parseInt(u.balance_after || '0', 10), 0);
     
-    console.log('DEBUG USERSRES.DATA LENGTH:', usersRes.data ? usersRes.data.length : 'NULL');
-    console.log('DEBUG USERSRES.ERROR:', usersRes.error);
+    // Inject balance_after into users so the admin dashboard dropdowns/tables show the correct balance
+
+    const userBalances = {};
+    const mappedUsers = (usersRes.data || []).map(u => {
+      userBalances[u.id] = parseInt(u.balance_after || '0', 10);
+      return {
+        ...u,
+        credits_balance: parseInt(u.balance_after || '0', 10)
+      };
+    });
+
+    const transactionsWithBalance = transRes.data || [];
     
     res.status(200).json({
-      users: usersRes.data || [],
-      transactions: transRes.data || [],
-      companySettings: { total_credits: total_credits_assigned }, // Shim for backward compatibility
+      users: mappedUsers,
+      transactions: transactionsWithBalance,
+      companySettings: { total_credits: total_credits_available }, // Shim for backward compatibility
       orders: ordersRes.data || []
     });
   } catch (error) {

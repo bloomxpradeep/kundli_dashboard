@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, ExternalLink, FileText, Sparkles, History, AlertCircle, XCircle } from 'lucide-react';
+import { Search, ExternalLink, FileText, History, XCircle } from 'lucide-react';
+import DatePicker from '../../Shared/DatePicker/DatePicker';
 
 export default function OrdersTab({
   getOrdersInLastDays,
@@ -9,22 +10,49 @@ export default function OrdersTab({
   setOrdersSearchQuery,
   setSelectedOrder
 }) {
-  const [currentPage, setCurrentPage] = React.useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+  
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [ordersSearchQuery]);
+  }, [ordersSearchQuery, statusFilter, dateFilter, customStartDate, customEndDate]);
 
   const filteredOrders = kundliOrders
     .filter(order => {
       const searchLower = ordersSearchQuery.toLowerCase();
-      return (
+      const matchesSearch = (
         (order.name && order.name.toLowerCase().includes(searchLower)) ||
         (order.email && order.email.toLowerCase().includes(searchLower)) ||
         (order.phone && order.phone.includes(searchLower)) ||
-        (order.order_id && order.order_id.toLowerCase().includes(searchLower))
+        (order.order_id && order.order_id.toLowerCase().includes(searchLower)) ||
+        (order.order_total_amount_raw && order.order_total_amount_raw.includes(searchLower))
       );
+      
+      if (!matchesSearch) return false;
+      if (statusFilter !== 'all' && (order.kundli_status || order.status) !== statusFilter) return false;
+      
+      if (dateFilter === 'all') return true;
+      const d = new Date(order.created_at);
+      const now = new Date();
+      if (dateFilter === 'today') return d.toDateString() === now.toDateString();
+      if (dateFilter === '7days') { const x = new Date(now); x.setDate(now.getDate() - 7); return d >= x; }
+      if (dateFilter === '30days') { const x = new Date(now); x.setDate(now.getDate() - 30); return d >= x; }
+      if (dateFilter === '90days') { const x = new Date(now); x.setDate(now.getDate() - 90); return d >= x; }
+      if (dateFilter === 'custom') {
+        if (customStartDate && customEndDate) {
+          const s = new Date(customStartDate); s.setHours(0, 0, 0, 0);
+          const e = new Date(customEndDate); e.setHours(23, 59, 59, 999);
+          return d >= s && d <= e;
+        }
+        if (customStartDate) { const s = new Date(customStartDate); s.setHours(0, 0, 0, 0); return d >= s; }
+        if (customEndDate) { const e = new Date(customEndDate); e.setHours(23, 59, 59, 999); return d <= e; }
+      }
+      return true;
     })
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
@@ -42,7 +70,7 @@ export default function OrdersTab({
       className="flex flex-col gap-8"
     >
       {/* Insight Metric Cards */}
-      <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+      <section className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {/* Total Orders */}
         <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-4 flex flex-col gap-2 hover:shadow-premium transition">
           <div className="flex justify-between items-center">
@@ -55,54 +83,18 @@ export default function OrdersTab({
           <span className="text-[10px] text-text-muted">All time orders placed</span>
         </div>
 
-        {/* Delivered */}
+        {/* Archived */}
         <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-4 flex flex-col gap-2 hover:shadow-premium transition">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Delivered</span>
+            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Archived</span>
             <div className="p-1.5 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-600">
-              <Sparkles size={14} />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-emerald-600">
-            {kundliOrders.filter(o => (o.kundli_status || o.status)?.toLowerCase() === 'delivered').length}
-          </div>
-          <span className="text-[10px] text-text-muted">Successfully delivered</span>
-        </div>
-
-        {/* Pending */}
-        <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-4 flex flex-col gap-2 hover:shadow-premium transition">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Pending</span>
-            <div className="p-1.5 bg-amber-50 border border-amber-100 rounded-lg text-amber-600">
               <History size={14} />
             </div>
           </div>
-          <div className="text-2xl font-bold text-amber-600">
-            {kundliOrders.filter(o => {
-              if ((o.kundli_status || o.status)?.toLowerCase() === 'delivered' || ['failed', 'drive_failed'].includes((o.kundli_status || o.status))) return false;
-              if (Date.now() - new Date(o.created_at).getTime() > 24 * 60 * 60 * 1000) return false;
-              return true;
-            }).length}
+          <div className="text-2xl font-bold text-emerald-600">
+            {kundliOrders.filter(o => (o.kundli_status || o.status)?.toLowerCase() === 'archived').length}
           </div>
-          <span className="text-[10px] text-text-muted">Active (Under 24h)</span>
-        </div>
-
-        {/* Not Delivered */}
-        <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-4 flex flex-col gap-2 hover:shadow-premium transition">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Not Delivered</span>
-            <div className="p-1.5 bg-red-50 border border-red-100 rounded-lg text-red-600">
-              <AlertCircle size={14} />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-red-600">
-            {kundliOrders.filter(o => {
-              if ((o.kundli_status || o.status)?.toLowerCase() === 'delivered' || ['failed', 'drive_failed'].includes((o.kundli_status || o.status))) return false;
-              if (Date.now() - new Date(o.created_at).getTime() > 24 * 60 * 60 * 1000) return true;
-              return false;
-            }).length}
-          </div>
-          <span className="text-[10px] text-text-muted">Past 24h</span>
+          <span className="text-[10px] text-text-muted">Archived orders</span>
         </div>
 
         {/* Failed */}
@@ -114,7 +106,7 @@ export default function OrdersTab({
             </div>
           </div>
           <div className="text-2xl font-bold text-red-600">
-            {kundliOrders.filter(o => ['failed', 'drive_failed'].includes((o.kundli_status || o.status))).length}
+            {kundliOrders.filter(o => ['failed', 'drive_failed'].includes((o.kundli_status || o.status)?.toLowerCase())).length}
           </div>
           <span className="text-[10px] text-text-muted">Generation failed</span>
         </div>
@@ -122,21 +114,91 @@ export default function OrdersTab({
 
       {/* Orders list table */}
       <section className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle flex flex-col gap-0">
-        <div className="p-6 border-b border-border-subtle flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="px-4 py-3 border-b border-border-subtle flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h3 className="text-sm font-semibold text-text-main">Detailed Kundli Purchase History</h3>
-          <div className="relative w-full md:max-w-sm">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={14} className="text-text-muted" />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative w-full md:w-64">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={14} className="text-text-muted" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search name, email, Order ID, amount..."
+                value={ordersSearchQuery}
+                onChange={(e) => setOrdersSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-neutral-50 border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 focus:bg-white transition"
+              />
             </div>
-            <input
-              type="text"
-              placeholder="Search by name, email, phone, or Order ID..."
-              value={ordersSearchQuery}
-              onChange={(e) => setOrdersSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-neutral-50 border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 focus:bg-white transition"
-            />
+
+            <div className="h-6 w-px bg-border-subtle hidden md:block" />
+
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2 bg-neutral-50 border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 focus:bg-white text-text-main cursor-pointer"
+              >
+                <option value="all">All Status</option>
+                <option value="created">Created</option>
+                <option value="paid">Paid</option>
+                <option value="generated_no_archive">Generated</option>
+                <option value="archived">Archived</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="h-6 w-px bg-border-subtle hidden md:block" />
+
+            <div className="relative">
+              <select
+                value={dateFilter}
+                onChange={(e) => {
+                  setDateFilter(e.target.value);
+                  if (e.target.value !== 'custom') {
+                    setCustomStartDate('');
+                    setCustomEndDate('');
+                  }
+                }}
+                className="appearance-none pl-3 pr-8 py-2 bg-neutral-50 border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 focus:bg-white text-text-main cursor-pointer"
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="7days">Last 7 Days</option>
+                <option value="30days">Last 30 Days</option>
+                <option value="90days">Last 90 Days</option>
+                <option value="custom" hidden>Custom</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <DatePicker
+                value={customStartDate}
+                onChange={(val) => { setCustomStartDate(val); setDateFilter('custom'); }}
+                placeholder="From date"
+                maxDate={customEndDate || undefined}
+                align="left"
+              />
+              <span className="text-text-muted text-xs font-medium">—</span>
+              <DatePicker
+                value={customEndDate}
+                onChange={(val) => { setCustomEndDate(val); setDateFilter('custom'); }}
+                placeholder="To date"
+                minDate={customStartDate || undefined}
+                align="right"
+              />
+            </div>
           </div>
         </div>
+        
         <div className="overflow-hidden custom-scrollbar overflow-x-auto rounded-b-xl">
           <table className="w-full text-left text-xs border-collapse">
             <thead>

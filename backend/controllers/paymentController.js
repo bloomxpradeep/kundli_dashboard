@@ -60,13 +60,14 @@ exports.verifyPayment = async (req, res) => {
 
     const { data: astrologerData, error: fetchError } = await supabaseAdmin
       .from('astrologers')
-      .select('credits_balance')
+      .select('credits_balance, balance_after')
       .eq('id', req.user.id)
       .single();
 
     if (fetchError) throw fetchError;
     
-    const newBalance = (astrologerData?.credits_balance || 0) + parsedCredits;
+    const newCreditsBalance = (astrologerData?.credits_balance || 0) + parsedCredits;
+    const newBalanceAfter = parseInt(astrologerData?.balance_after || '0', 10) + parsedCredits;
 
     // 2. Log transaction FIRST (Safer to do this first so we can roll back if balance update fails)
     const { data: transaction, error: transactionError } = await supabaseAdmin
@@ -75,7 +76,7 @@ exports.verifyPayment = async (req, res) => {
         astrologer_id: req.user.id,
         type: 'assign', // Must be assign, deduct, refund, or adjust as per SQL check constraint
         amount: parsedCredits,
-        total_credits_assigned: parsedCredits,
+        total_credits_assigned: newBalanceAfter.toString(),
         payment_id: razorpay_payment_id,
         note: `Purchased via Razorpay`,
         created_by: 'system'
@@ -89,7 +90,8 @@ exports.verifyPayment = async (req, res) => {
     const { error: updateError } = await supabaseAdmin
       .from('astrologers')
       .update({ 
-        credits_balance: newBalance
+        credits_balance: newCreditsBalance,
+        balance_after: newBalanceAfter.toString()
       })
       .eq('id', req.user.id);
 
@@ -99,7 +101,7 @@ exports.verifyPayment = async (req, res) => {
       throw updateError;
     }
 
-    res.status(200).json({ message: 'Payment verified and credits added', newTotal: newBalance });
+    res.status(200).json({ message: 'Payment verified and credits added', newTotal: newCreditsBalance });
   } catch (error) {
     console.error('Error verifying Razorpay payment:', error);
     res.status(500).json({ error: error.message });
@@ -151,13 +153,14 @@ exports.webhook = async (req, res) => {
 
       const { data: astrologerData, error: fetchError } = await supabaseAdmin
         .from('astrologers')
-        .select('credits_balance')
+        .select('credits_balance, balance_after')
         .eq('id', astrologer_id)
         .single();
 
       if (fetchError) throw fetchError;
       
-      const newBalance = (astrologerData?.credits_balance || 0) + parsedCredits;
+      const newCreditsBalance = (astrologerData?.credits_balance || 0) + parsedCredits;
+      const newBalanceAfter = parseInt(astrologerData?.balance_after || '0', 10) + parsedCredits;
 
       // 3. Log transaction FIRST
       const { data: transaction, error: transactionError } = await supabaseAdmin
@@ -166,7 +169,7 @@ exports.webhook = async (req, res) => {
           astrologer_id: astrologer_id,
           type: 'assign',
           amount: parsedCredits,
-          total_credits_assigned: parsedCredits,
+          total_credits_assigned: newBalanceAfter.toString(),
           payment_id: razorpay_payment_id,
           note: `Purchased via Razorpay (Webhook)`,
           created_by: 'system'
@@ -180,7 +183,8 @@ exports.webhook = async (req, res) => {
       const { error: updateError } = await supabaseAdmin
         .from('astrologers')
         .update({ 
-          credits_balance: newBalance
+          credits_balance: newCreditsBalance,
+          balance_after: newBalanceAfter.toString()
         })
         .eq('id', astrologer_id);
 

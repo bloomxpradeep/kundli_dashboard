@@ -29,7 +29,7 @@ export default function OrdersTab({
       className="flex flex-col gap-5"
     >
       {/* Insight Metric Cards */}
-      <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+      <section className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {/* Total Orders */}
         <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-4 flex flex-col gap-2 hover:shadow-premium transition">
           <div className="flex justify-between items-center">
@@ -42,54 +42,18 @@ export default function OrdersTab({
           <span className="text-[10px] text-text-muted">All time orders placed</span>
         </div>
 
-        {/* Delivered */}
+        {/* Archived */}
         <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-4 flex flex-col gap-2 hover:shadow-premium transition">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Delivered</span>
+            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Archived</span>
             <div className="p-1.5 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-600">
-              <Sparkles size={14} />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-emerald-600">
-            {loading ? '…' : kundliOrders.filter(o => (o.kundli_status || o.status)?.toLowerCase() === 'delivered').length}
-          </div>
-          <span className="text-[10px] text-text-muted">Successfully delivered</span>
-        </div>
-
-        {/* Pending */}
-        <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-4 flex flex-col gap-2 hover:shadow-premium transition">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Pending</span>
-            <div className="p-1.5 bg-amber-50 border border-amber-100 rounded-lg text-amber-600">
               <History size={14} />
             </div>
           </div>
-          <div className="text-2xl font-bold text-amber-600">
-            {loading ? '…' : kundliOrders.filter(o => {
-              if ((o.kundli_status || o.status)?.toLowerCase() === 'delivered' || ['failed', 'drive_failed'].includes((o.kundli_status || o.status))) return false;
-              if (Date.now() - new Date(o.created_at).getTime() > 24 * 60 * 60 * 1000) return false;
-              return true;
-            }).length}
+          <div className="text-2xl font-bold text-emerald-600">
+            {loading ? '…' : kundliOrders.filter(o => (o.kundli_status || o.status)?.toLowerCase() === 'archived').length}
           </div>
-          <span className="text-[10px] text-text-muted">Active (Under 24h)</span>
-        </div>
-
-        {/* Not Delivered */}
-        <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-4 flex flex-col gap-2 hover:shadow-premium transition">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Not Delivered</span>
-            <div className="p-1.5 bg-red-50 border border-red-100 rounded-lg text-red-600">
-              <AlertCircle size={14} />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-red-600">
-            {loading ? '…' : kundliOrders.filter(o => {
-              if ((o.kundli_status || o.status)?.toLowerCase() === 'delivered' || ['failed', 'drive_failed'].includes((o.kundli_status || o.status))) return false;
-              if (Date.now() - new Date(o.created_at).getTime() > 24 * 60 * 60 * 1000) return true;
-              return false;
-            }).length}
-          </div>
-          <span className="text-[10px] text-text-muted">Past 24h</span>
+          <span className="text-[10px] text-text-muted">Archived orders</span>
         </div>
 
         {/* Failed */}
@@ -101,7 +65,7 @@ export default function OrdersTab({
             </div>
           </div>
           <div className="text-2xl font-bold text-red-600">
-            {loading ? '…' : kundliOrders.filter(o => ['failed', 'drive_failed'].includes((o.kundli_status || o.status))).length}
+            {loading ? '…' : kundliOrders.filter(o => ['failed', 'drive_failed'].includes((o.kundli_status || o.status)?.toLowerCase())).length}
           </div>
           <span className="text-[10px] text-text-muted">Generation failed</span>
         </div>
@@ -117,7 +81,7 @@ export default function OrdersTab({
             </div>
             <input
               type="text"
-              placeholder="Search name, email, Order ID..."
+              placeholder="Search name, email, Order ID, amount..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-4 py-[7px] bg-neutral-50 border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 focus:bg-white transition"
@@ -225,7 +189,8 @@ export default function OrdersTab({
                       (order.name && order.name.toLowerCase().includes(q)) ||
                       (order.email && order.email.toLowerCase().includes(q)) ||
                       (order.phone && order.phone.includes(q)) ||
-                      (order.order_id && order.order_id.toLowerCase().includes(q))
+                      (order.order_id && order.order_id.toLowerCase().includes(q)) ||
+                      (order.order_total_amount_raw && order.order_total_amount_raw.includes(q))
                     );
                     if (!matchesSearch) return false;
                     if (statusFilter !== 'all' && (order.kundli_status || order.status) !== statusFilter) return false;
@@ -323,7 +288,8 @@ export default function OrdersTab({
               (order.name && order.name.toLowerCase().includes(s)) ||
               (order.email && order.email.toLowerCase().includes(s)) ||
               (order.phone && order.phone.includes(s)) ||
-              (order.order_id && order.order_id.toLowerCase().includes(s))
+              (order.order_id && order.order_id.toLowerCase().includes(s)) ||
+              (order.order_total_amount_raw && order.order_total_amount_raw.includes(s))
             );
             if (!matchesSearch) return false;
             if (statusFilter !== 'all' && (order.kundli_status || order.status) !== statusFilter) return false;

@@ -70,7 +70,7 @@ export default function TransactionsTab({
                       </span>
                     </td>
                     <td className="p-4 align-middle font-medium text-text-main">
-                      {t.balance_after}
+                      {t.total_credits_assigned || '-'}
                     </td>
                     <td className="p-4 align-middle">
                       <div className="flex flex-col">

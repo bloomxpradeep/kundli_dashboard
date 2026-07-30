@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Coins, UserPlus } from 'lucide-react';
+import { Coins, UserPlus, RefreshCw } from 'lucide-react';
 
 import Sidebar from './Sidebar/Sidebar';
 import OverviewTab from './Overview/OverviewTab';
@@ -250,8 +250,16 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
   const totalPaymentsCount = paymentTransactions.length;
   const totalRevenue = paymentTransactions.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
 
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
   const totalCreditsAllocated = transactions
-    .filter(t => t.type === 'assign')
+    .filter(t => {
+      if (t.type !== 'assign') return false;
+      const tDate = new Date(t.created_at);
+      return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+    })
     .reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
   const reportTransactions = transactions.filter(t => t.type === 'deduct');
@@ -334,7 +342,15 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
             </p>
           </div>
           
-          {activeTab === 'users' && (
+          <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
+            <button 
+              onClick={() => fetchDashboardData()}
+              className="inline-flex items-center justify-center p-2 bg-neutral-100 hover:bg-neutral-200 text-text-main rounded-lg shadow-sm transition"
+              title="Refresh Data"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            </button>
+            {activeTab === 'users' && (
             <button 
               className="inline-flex items-center justify-center gap-2 bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold py-2 px-3.5 rounded-lg shadow-sm active:scale-[0.98] transition cursor-pointer border-none" 
               onClick={() => setIsUserModalOpen(true)}
@@ -353,6 +369,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
               <span>Allocate Credits</span>
             </button>
           )}
+          </div>
         </header>
 
         {activeTab === 'overview' && (

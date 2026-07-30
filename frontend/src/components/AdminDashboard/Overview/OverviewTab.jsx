@@ -59,10 +59,10 @@ export default function OverviewTab({
             </div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-text-main leading-none">
+            <div className="text-3xl font-bold text-text-main leading-none mt-4">
               {loading ? '...' : totalCreditsAllocated}
             </div>
-            <span className="text-[10px] text-text-muted mt-1 block">Total points assigned</span>
+            <span className="text-[10px] text-text-muted block mt-1.5">Credits assigned this month</span>
           </div>
         </div>
 

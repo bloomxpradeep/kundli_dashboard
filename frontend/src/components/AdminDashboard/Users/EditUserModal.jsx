@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import Modal from '../../Shared/Modal/Modal';
 
 export default function EditUserModal({
@@ -14,6 +15,8 @@ export default function EditUserModal({
   setEditPassword,
   submittingUser
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <Modal
       isOpen={isOpen}
@@ -54,16 +57,25 @@ export default function EditUserModal({
           <label className="block text-xs font-semibold text-text-main uppercase tracking-wider mb-1.5" htmlFor="edit-password">
             New Password (Optional)
           </label>
-          <input
-            id="edit-password"
-            type="password"
-            placeholder="Leave blank to keep current password"
-            className="w-full px-3 py-2 text-sm border border-border-subtle rounded-lg bg-bg-card text-text-main outline-none focus:border-neutral-900"
-            value={editPassword}
-            onChange={(e) => setEditPassword(e.target.value)}
-            disabled={submittingUser}
-            minLength={6}
-          />
+          <div className="relative">
+            <input
+              id="edit-password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Leave blank to keep current password"
+              className="w-full pl-3 pr-10 py-2 text-sm border border-border-subtle rounded-lg bg-bg-card text-text-main outline-none focus:border-neutral-900"
+              value={editPassword}
+              onChange={(e) => setEditPassword(e.target.value)}
+              minLength={6}
+              disabled={submittingUser}
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main focus:outline-none"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </div>
         <div className="flex gap-3 justify-between pt-2">
           <button 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { RefreshCw } from 'lucide-react';
 import Sidebar from './Sidebar/Sidebar';
 import OverviewTab from './Overview/OverviewTab';
 import OrdersTab from './Orders/OrdersTab';
@@ -221,19 +222,30 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
       />
 
       <main className="flex-grow ml-64 p-8 md:p-10 flex flex-col gap-8 min-w-0">
-        <header>
-          <h1 className="text-2xl font-bold text-text-main tracking-tight">
-            {activeTab === 'overview' && 'Overview'}
-            {activeTab === 'orders' && 'Orders'}
-            {activeTab === 'analytics' && 'Order Analysis'}
-            {activeTab === 'credits' && 'Credit Usage & Logs'}
-          </h1>
-          <p className="text-xs text-text-muted mt-1 font-normal">
-            {activeTab === 'overview' && 'Overview of company credit balance and astrology report options.'}
-            {activeTab === 'orders' && 'All customer orders with insights, filters and pagination.'}
-            {activeTab === 'analytics' && 'Visual analysis and demographics of customer orders.'}
-            {activeTab === 'credits' && 'Track your credit purchases, allocations, and how much credit you have used.'}
-          </p>
+        <header className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-text-main tracking-tight">
+              {activeTab === 'overview' && 'Overview'}
+              {activeTab === 'orders' && 'Orders'}
+              {activeTab === 'analytics' && 'Order Analysis'}
+              {activeTab === 'credits' && 'Credit Usage & Logs'}
+            </h1>
+            <p className="text-xs text-text-muted mt-1 font-normal">
+              {activeTab === 'overview' && 'Overview of company credit balance and astrology report options.'}
+              {activeTab === 'orders' && 'All customer orders with insights, filters and pagination.'}
+              {activeTab === 'analytics' && 'Visual analysis and demographics of customer orders.'}
+              {activeTab === 'credits' && 'Track your credit purchases, allocations, and how much credit you have used.'}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 mt-4 sm:mt-0">
+            <button 
+              onClick={() => fetchUserData()}
+              className="inline-flex items-center justify-center p-2 bg-neutral-100 hover:bg-neutral-200 text-text-main rounded-lg shadow-sm transition"
+              title="Refresh Data"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </div>
         </header>
 
         {activeTab === 'overview' && (

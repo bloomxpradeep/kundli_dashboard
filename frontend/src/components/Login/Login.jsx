@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Sparkles } from 'lucide-react';
+import { Mail, Lock, Sparkles, Eye, EyeOff } from 'lucide-react';
 
 export default function Login({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -88,8 +89,8 @@ export default function Login({ onLoginSuccess }) {
               <Lock className="absolute left-3.5 text-text-muted pointer-events-none" size={16} />
               <input
                 id="password"
-                type="password"
-                className="w-full pl-10 pr-4 py-2.5 text-sm border border-border-subtle rounded-lg bg-bg-card text-text-main placeholder-neutral-400 outline-none transition focus:border-neutral-900"
+                type={showPassword ? "text" : "password"}
+                className="w-full pl-10 pr-10 py-2.5 text-sm border border-border-subtle rounded-lg bg-bg-card text-text-main placeholder-neutral-400 outline-none transition focus:border-neutral-900"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -97,6 +98,13 @@ export default function Login({ onLoginSuccess }) {
                 autoComplete="current-password"
                 required
               />
+              <button
+                type="button"
+                className="absolute right-3.5 text-text-muted hover:text-text-main focus:outline-none"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </div>
 

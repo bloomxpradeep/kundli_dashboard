@@ -64,12 +64,12 @@ export default function CreditsTab({ companySettings, transactions, setIsCreditP
             <div className="text-3xl font-bold text-text-main leading-none">
               {companySettings?.total_credits || 0}
             </div>
-            <button 
+            {/* <button 
               onClick={() => setIsCreditPurchaseModalOpen(true)}
               className="px-3 py-1.5 bg-neutral-950 text-white rounded-lg hover:bg-neutral-800 transition shadow-sm font-semibold text-[10px] mt-3 self-start cursor-pointer"
             >
               + Buy Credits
-            </button>
+            </button> */}
           </div>
         </div>
         <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-6 flex flex-col justify-between gap-3">
@@ -140,7 +140,7 @@ export default function CreditsTab({ companySettings, transactions, setIsCreditP
                           </span>
                         </td>
                         <td className="p-4 align-middle font-medium text-text-main whitespace-nowrap">
-                          {t.balance_after}
+                          {t.total_credits_assigned || '-'}
                         </td>
                         <td className="p-4 align-middle whitespace-nowrap">
                           {t.payment_id ? (
