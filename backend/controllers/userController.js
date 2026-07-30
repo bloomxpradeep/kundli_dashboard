@@ -12,7 +12,7 @@ exports.getDashboard = async (req, res) => {
 
     res.status(200).json({
       transactions: transactionsWithBalance,
-      companySettings: { total_credits: parseInt(astrologerRes.data?.balance_after || '0', 10) }, 
+      companySettings: { total_credits: parseInt(astrologerRes.data?.credits_balance || '0', 10) }, 
       orders: ordersRes.data || []
     });
   } catch (error) {
