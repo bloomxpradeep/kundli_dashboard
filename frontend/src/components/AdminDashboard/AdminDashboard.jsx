@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Coins, UserPlus, RefreshCw } from 'lucide-react';
+import { Coins, UserPlus, RefreshCw, AlertTriangle, X } from 'lucide-react';
 
 import Sidebar from './Sidebar/Sidebar';
 import OverviewTab from './Overview/OverviewTab';
@@ -20,9 +20,10 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [ordersSearchQuery, setOrdersSearchQuery] = useState('');
-  
+
   // Modals state
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [hideLowCreditAlert, setHideLowCreditAlert] = useState(false);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [selectedUserForEdit, setSelectedUserForEdit] = useState(null);
   const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
@@ -32,7 +33,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
   const [newFullName, setNewFullName] = useState('');
   const [newLoginUsername, setNewLoginUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  
+
   const [editFullName, setEditFullName] = useState('');
   const [editLoginUsername, setEditLoginUsername] = useState('');
   const [editPassword, setEditPassword] = useState('');
@@ -54,7 +55,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/dashboard`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       if (response.status === 401) {
         addToast('Session expired. Please log in again.', 'error');
         onLogout();
@@ -62,7 +63,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
       }
 
       if (!response.ok) throw new Error('Failed to fetch dashboard data');
-      
+
       const data = await response.json();
       setUsers(data.users || []);
       setTransactions(data.transactions || []);
@@ -228,7 +229,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
       if (!response.ok) {
         throw new Error(data.error || 'Failed to allocate credits');
       }
-      
+
       addToast(`Allocated ${amount} credits successfully`, 'success');
       setIsCreditModalOpen(false);
       setCreditAmount('10');
@@ -245,7 +246,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
 
   // Calculate Metrics
   const regularUsers = users.filter(u => u.role !== 'admin');
-  
+
   const paymentTransactions = transactions.filter(t => t.payment_id != null);
   const totalPaymentsCount = paymentTransactions.length;
   const totalRevenue = paymentTransactions.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
@@ -262,12 +263,12 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
     })
     .reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
-  const reportTransactions = transactions.filter(t => t.type === 'deduct');
-  const totalReportsDelivered = reportTransactions.length;
+  const archivedOrders = kundliOrders.filter(o => o.kundli_status === 'archived');
+  const totalReportsDelivered = archivedOrders.length;
 
   // Filter users for directory
-  const filteredUsers = regularUsers.filter(u => 
-    (u.username && u.username.toLowerCase().includes(searchQuery.toLowerCase())) || 
+  const filteredUsers = regularUsers.filter(u =>
+    (u.username && u.username.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -286,7 +287,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
 
     transactions.forEach(t => {
       const tDate = new Date(t.created_at);
-      const matchedDay = last7Days.find(day => 
+      const matchedDay = last7Days.find(day =>
         day.dateObj.toDateString() === tDate.toDateString()
       );
       if (matchedDay) {
@@ -305,8 +306,8 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
   const getOrdersInLastDays = (days) => {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    return kundliOrders.filter(o => 
-      ['paid', 'generated_no_archive', 'archived', 'generating'].includes(o.kundli_status) && 
+    return kundliOrders.filter(o =>
+      ['paid', 'generated_no_archive', 'archived', 'generating'].includes(o.kundli_status) &&
       new Date(o.created_at) >= cutoff
     ).length;
   };
@@ -318,10 +319,10 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
 
   return (
     <div className="flex min-h-screen w-full bg-bg-base">
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        onLogout={onLogout} 
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onLogout={onLogout}
         profile={profile}
       />
 
@@ -332,18 +333,18 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
               {activeTab === 'overview' ? 'Business Dashboard' : activeTab === 'users' ? 'User Management' : activeTab === 'transactions' ? 'Transactions & Payments' : 'Kundli Orders Log'}
             </h1>
             <p className="text-xs text-text-muted mt-1">
-              {activeTab === 'overview' 
-                ? 'High-level business performance metrics and allocation trends.' 
+              {activeTab === 'overview'
+                ? 'High-level business performance metrics and allocation trends.'
                 : activeTab === 'users'
-                ? 'Create and manage staff accounts.'
-                : activeTab === 'transactions'
-                ? 'Review user credit purchases and manual credit allocations.'
-                : 'Track who has purchased Kundlis and analyze short-term order frequency.'}
+                  ? 'Create and manage staff accounts.'
+                  : activeTab === 'transactions'
+                    ? 'Review user credit purchases and manual credit allocations.'
+                    : 'Track who has purchased Kundlis and analyze short-term order frequency.'}
             </p>
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
-            <button 
+            <button
               onClick={() => fetchDashboardData()}
               className="inline-flex items-center justify-center p-2 bg-neutral-100 hover:bg-neutral-200 text-text-main rounded-lg shadow-sm transition"
               title="Refresh Data"
@@ -351,29 +352,48 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             </button>
             {activeTab === 'users' && (
-            <button 
-              className="inline-flex items-center justify-center gap-2 bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold py-2 px-3.5 rounded-lg shadow-sm active:scale-[0.98] transition cursor-pointer border-none" 
-              onClick={() => setIsUserModalOpen(true)}
-            >
-              <UserPlus size={14} />
-              <span>Create New User</span>
-            </button>
-          )}
+              <button
+                className="inline-flex items-center justify-center gap-2 bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold py-2 px-3.5 rounded-lg shadow-sm active:scale-[0.98] transition cursor-pointer border-none"
+                onClick={() => setIsUserModalOpen(true)}
+              >
+                <UserPlus size={14} />
+                <span>Create New User</span>
+              </button>
+            )}
 
-          {activeTab === 'overview' && (
-            <button 
-              className="inline-flex items-center justify-center gap-2 bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold py-2 px-3.5 rounded-lg shadow-sm active:scale-[0.98] transition cursor-pointer border-none" 
-              onClick={() => setIsCreditModalOpen(true)}
-            >
-              <Coins size={14} />
-              <span>Allocate Credits</span>
-            </button>
-          )}
+            {activeTab === 'overview' && (
+              <button
+                className="inline-flex items-center justify-center gap-2 bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold py-2 px-3.5 rounded-lg shadow-sm active:scale-[0.98] transition cursor-pointer border-none"
+                onClick={() => setIsCreditModalOpen(true)}
+              >
+                <Coins size={14} />
+                <span>Allocate Credits</span>
+              </button>
+            )}
           </div>
         </header>
 
+        {!hideLowCreditAlert && users.some(u => u.credits_balance < 800) && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-4 flex items-start gap-3 shadow-sm relative">
+            <div className="p-1.5 bg-rose-100 rounded-lg text-rose-600 mt-0.5">
+              <AlertTriangle size={18} />
+            </div>
+            <div className="pr-6">
+              <h4 className="text-sm font-bold text-rose-900">Low Credit Balance</h4>
+              <p className="text-xs text-rose-700 mt-1">The user credit balance has fallen below 800. Please ensure the account is recharged or allocated credits to avoid service interruption.</p>
+            </div>
+            <button
+              onClick={() => setHideLowCreditAlert(true)}
+              className="absolute top-4 right-4 text-rose-400 hover:text-rose-700 transition"
+              title="Dismiss"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         {activeTab === 'overview' && (
-          <OverviewTab 
+          <OverviewTab
             loading={loading}
             companySettings={companySettings}
             totalPaymentsCount={totalPaymentsCount}
@@ -385,7 +405,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
         )}
 
         {activeTab === 'users' && (
-          <UsersTab 
+          <UsersTab
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             loading={loading}
@@ -395,7 +415,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
         )}
 
         {activeTab === 'orders' && (
-          <OrdersTab 
+          <OrdersTab
             getOrdersInLastDays={getOrdersInLastDays}
             kundliOrders={kundliOrders}
             ordersSearchQuery={ordersSearchQuery}
@@ -405,7 +425,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
         )}
 
         {activeTab === 'transactions' && (
-          <TransactionsTab 
+          <TransactionsTab
             loading={loading}
             transactions={transactions}
             getUserEmail={getUserEmail}
@@ -413,7 +433,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
         )}
       </main>
 
-      <CreateUserModal 
+      <CreateUserModal
         isOpen={isUserModalOpen}
         onClose={() => setIsUserModalOpen(false)}
         handleCreateUser={handleCreateUser}
@@ -426,7 +446,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
         submittingUser={submittingUser}
       />
 
-      <EditUserModal 
+      <EditUserModal
         isOpen={isEditUserModalOpen}
         onClose={() => setIsEditUserModalOpen(false)}
         handleUpdateUser={handleUpdateUser}
@@ -440,7 +460,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
         submittingUser={submittingUser}
       />
 
-      <AllocateCreditModal 
+      <AllocateCreditModal
         isOpen={isCreditModalOpen}
         onClose={() => setIsCreditModalOpen(false)}
         handleAllocateCredit={handleAllocateCredit}
@@ -454,7 +474,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
         submittingCredit={submittingCredit}
       />
 
-      <OrderDetailsModal 
+      <OrderDetailsModal
         selectedOrder={selectedOrder}
         setSelectedOrder={setSelectedOrder}
         addToast={addToast}

@@ -32,12 +32,13 @@ export default function TransactionsTab({
               <tr>
                 <td colSpan={6} className="p-8 text-center text-text-muted">Loading transactions...</td>
               </tr>
-            ) : transactions.length === 0 ? (
+            ) : transactions.filter(t => t.type !== 'deduct').length === 0 ? (
               <tr>
                 <td colSpan={6} className="p-8 text-center text-text-muted">No transactions found.</td>
               </tr>
             ) : (
               transactions
+                .filter(t => t.type !== 'deduct')
                 .map((t) => (
                   <tr key={t.id} className="hover:bg-neutral-50/50">
                     <td className="p-4 align-middle text-text-muted whitespace-nowrap">

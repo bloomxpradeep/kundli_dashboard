@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertTriangle, X } from 'lucide-react';
 import Sidebar from './Sidebar/Sidebar';
 import OverviewTab from './Overview/OverviewTab';
 import OrdersTab from './Orders/OrdersTab';
@@ -23,6 +23,7 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
   const [selectedPackage, setSelectedPackage] = useState('Starter');
   const [isCustomAmount, setIsCustomAmount] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [hideLowCreditAlert, setHideLowCreditAlert] = useState(false);
 
   const creditPackages = [
     { id: 'Starter', credits: 10, price: 10, popular: false },
@@ -60,9 +61,9 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
     setLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      
+
       const dashboardRes = await fetch(`${import.meta.env.VITE_API_URL}/user/dashboard`, { headers: { 'Authorization': `Bearer ${token}` } });
-      
+
       if (dashboardRes.status === 401) {
         addToast('Session expired. Please log in again.', 'error');
         onLogout();
@@ -70,7 +71,7 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
       }
 
       if (!dashboardRes.ok) throw new Error('Failed to fetch user data');
-      
+
       const dashboardData = await dashboardRes.json();
 
       if (!profile) {
@@ -110,9 +111,9 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
     e.preventDefault();
     const amount = parseInt(purchaseCreditAmount);
     if (!amount || amount <= 0) return;
-    
+
     setIsProcessingPayment(true);
-    
+
     try {
       const res = await loadRazorpayScript();
       if (!res) {
@@ -120,7 +121,7 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
         setIsProcessingPayment(false);
         return;
       }
-      
+
       const token = localStorage.getItem('auth_token');
 
       // 1. Ask backend to create a Razorpay order
@@ -139,7 +140,7 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
       // 2. Open Razorpay Checkout overlay
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: orderData.amount, 
+        amount: orderData.amount,
         currency: orderData.currency,
         order_id: orderData.id,
         name: 'Kundli Portal',
@@ -175,7 +176,7 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
             setPurchaseCreditAmount('');
             setSelectedPackage('');
             fetchUserData(); // Refresh logs
-            
+
           } catch (err) {
             console.error("Payment verification failed:", err);
             addToast(err.message || 'Payment successful, but failed to log transaction. Contact Admin.', 'error');
@@ -192,7 +193,7 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
           color: '#800000' // Maroon theme
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             setIsProcessingPayment(false);
           }
         }
@@ -200,7 +201,7 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
 
       const paymentObject = new window.Razorpay(options);
       paymentObject.open();
-      
+
     } catch (err) {
       console.error(err);
       addToast('An error occurred initializing the payment gateway.', 'error');
@@ -210,15 +211,15 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
 
   return (
     <div className="flex min-h-screen w-full bg-bg-base">
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        showDropdown={showDropdown} 
-        setShowDropdown={setShowDropdown} 
-        setIsProfileModalOpen={setIsProfileModalOpen} 
-        onLogout={onLogout} 
-        profile={profile} 
-        user={user} 
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        showDropdown={showDropdown}
+        setShowDropdown={setShowDropdown}
+        setIsProfileModalOpen={setIsProfileModalOpen}
+        onLogout={onLogout}
+        profile={profile}
+        user={user}
       />
 
       <main className="flex-grow ml-64 p-8 md:p-10 flex flex-col gap-8 min-w-0">
@@ -238,7 +239,7 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
             </p>
           </div>
           <div className="flex items-center gap-3 mt-4 sm:mt-0">
-            <button 
+            <button
               onClick={() => fetchUserData()}
               className="inline-flex items-center justify-center p-2 bg-neutral-100 hover:bg-neutral-200 text-text-main rounded-lg shadow-sm transition"
               title="Refresh Data"
@@ -248,8 +249,27 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
           </div>
         </header>
 
+        {!hideLowCreditAlert && companySettings?.total_credits < 800 && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-4 flex items-start gap-3 shadow-sm relative">
+            <div className="p-1.5 bg-rose-100 rounded-lg text-rose-600 mt-0.5">
+              <AlertTriangle size={18} />
+            </div>
+            <div className="pr-6">
+              <h4 className="text-sm font-bold text-rose-900">Low Credit Balance</h4>
+              <p className="text-xs text-rose-700 mt-1">Your credit balance is below 800. Please recharge soon to ensure uninterrupted service.</p>
+            </div>
+            <button
+              onClick={() => setHideLowCreditAlert(true)}
+              className="absolute top-4 right-4 text-rose-400 hover:text-rose-700 transition"
+              title="Dismiss"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         {activeTab === 'overview' && (
-          <OverviewTab 
+          <OverviewTab
             loading={loading}
             companySettings={companySettings}
             kundliOrders={kundliOrders}
@@ -258,7 +278,7 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
         )}
 
         {activeTab === 'orders' && (
-          <OrdersTab 
+          <OrdersTab
             loading={loading}
             kundliOrders={kundliOrders}
             searchQuery={searchQuery}
@@ -279,14 +299,14 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
         )}
 
         {activeTab === 'analytics' && (
-          <AnalyticsTab 
+          <AnalyticsTab
             loading={loading}
             kundliOrders={kundliOrders}
           />
         )}
 
         {activeTab === 'credits' && (
-          <CreditsTab 
+          <CreditsTab
             companySettings={companySettings}
             transactions={transactions}
             setIsCreditPurchaseModalOpen={setIsCreditPurchaseModalOpen}
@@ -294,20 +314,20 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
         )}
       </main>
 
-      <ProfileModal 
+      <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         profile={profile}
         user={user}
       />
 
-      <OrderDetailsModal 
+      <OrderDetailsModal
         selectedOrder={selectedOrder}
         setSelectedOrder={setSelectedOrder}
         addToast={addToast}
       />
 
-      <CreditPurchaseModal 
+      <CreditPurchaseModal
         isCreditPurchaseModalOpen={isCreditPurchaseModalOpen}
         setIsCreditPurchaseModalOpen={setIsCreditPurchaseModalOpen}
         isProcessingPayment={isProcessingPayment}

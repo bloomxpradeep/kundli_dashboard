@@ -34,19 +34,20 @@ export default function UsersTab({
           <thead>
             <tr className="bg-neutral-50 border-b border-border-subtle">
               <th className="font-semibold text-text-main p-3 uppercase tracking-wider">User Account</th>
+              <th className="font-semibold text-text-main p-3 uppercase tracking-wider">Remaining Balance</th>
               <th className="font-semibold text-text-main p-3 uppercase tracking-wider text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border-subtle">
             {loading ? (
               <tr>
-                <td className="p-8 text-center text-text-muted">
+                <td colSpan={3} className="p-8 text-center text-text-muted">
                   Loading directory...
                 </td>
               </tr>
             ) : filteredUsers.length === 0 ? (
               <tr>
-                <td className="p-8 text-center text-text-muted">
+                <td colSpan={3} className="p-8 text-center text-text-muted">
                   No registered accounts found matching query.
                 </td>
               </tr>
@@ -61,6 +62,9 @@ export default function UsersTab({
                         Created: {new Date(user.created_at).toLocaleDateString()}
                       </span>
                     </div>
+                  </td>
+                  <td className="p-4 align-middle font-bold text-emerald-600">
+                    {user.credits_balance || 0}
                   </td>
                   <td className="p-4 align-middle text-right">
                     <button

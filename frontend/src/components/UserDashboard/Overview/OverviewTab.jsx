@@ -21,7 +21,7 @@ export default function OverviewTab({
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-6 flex flex-col justify-between gap-3 hover:shadow-premium transition">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Available Credits</span>
+            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Remaining Balance</span>
             <div className="p-1.5 bg-neutral-50 text-text-main border border-border-subtle rounded-lg">
               <Coins size={16} />
             </div>
@@ -62,24 +62,7 @@ export default function OverviewTab({
         </div>
       </section>
 
-      {/* CTA Purchase Banner */}
-      <section className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:shadow-premium transition">
-        <div className="max-w-xl">
-          <h3 className="text-sm font-semibold text-text-main mb-1">Generate Astrological Report</h3>
-          <p className="text-xs text-text-muted leading-relaxed">
-            Fill out the secure birth details form and complete payment on Razorpay. Upon successful transaction validation, your credits will be updated and Pabbly API will trigger the generation and delivery.
-          </p>
-        </div>
-        <a 
-          href={EXTERNAL_PURCHASE_FORM_URL}
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-neutral-950 hover:bg-neutral-800 text-white text-xs font-semibold rounded-lg shadow-sm transition active:scale-[0.98]"
-        >
-          <span>Fill Birth Form & Pay</span>
-          <ExternalLink size={14} />
-        </a>
-      </section>
+
     </motion.div>
   );
 }

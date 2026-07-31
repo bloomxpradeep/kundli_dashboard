@@ -20,10 +20,10 @@ export default function OverviewTab({
       className="flex flex-col gap-8"
     >
       {/* KPI Cards Grid */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-5 flex flex-col justify-between gap-3 hover:shadow-premium transition">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Total Credits Available</span>
+            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Total Remaining Balance</span>
             <div className="p-1.5 bg-neutral-50 text-text-main border border-border-subtle rounded-lg">
               <Coins size={16} />
             </div>
@@ -34,22 +34,7 @@ export default function OverviewTab({
           <span className="text-[10px] text-text-muted mt-1 block">Active user profiles</span>
         </div>
 
-        <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-5 flex flex-col justify-between gap-3 hover:shadow-premium transition">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Payments Verified</span>
-            <div className="p-1.5 bg-neutral-50 text-text-main border border-border-subtle rounded-lg">
-              <CreditCard size={15} />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-text-main leading-none">
-              {loading ? '...' : totalPaymentsCount}
-            </div>
-            <span className="text-[10px] text-emerald-600 font-medium mt-1 block">
-              Revenue: ₹{totalRevenue.toFixed(2)}
-            </span>
-          </div>
-        </div>
+
 
         <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-5 flex flex-col justify-between gap-3 hover:shadow-premium transition">
           <div className="flex justify-between items-center">
@@ -68,7 +53,7 @@ export default function OverviewTab({
 
         <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-5 flex flex-col justify-between gap-3 hover:shadow-premium transition">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Reports Delivered</span>
+            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Reports Archived</span>
             <div className="p-1.5 bg-neutral-50 text-text-main border border-border-subtle rounded-lg">
               <FileText size={15} />
             </div>
