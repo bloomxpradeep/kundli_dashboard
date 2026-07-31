@@ -241,10 +241,11 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
           <div className="flex items-center gap-3 mt-4 sm:mt-0">
             <button
               onClick={() => fetchUserData()}
-              className="inline-flex items-center justify-center p-2 bg-neutral-100 hover:bg-neutral-200 text-text-main rounded-lg shadow-sm transition"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-neutral-950 hover:bg-neutral-800 text-white border-none text-sm font-semibold rounded-lg shadow-sm transition"
               title="Refresh Data"
             >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              <span>Refresh</span>
             </button>
           </div>
         </header>

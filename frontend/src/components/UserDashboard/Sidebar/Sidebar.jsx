@@ -40,10 +40,8 @@ export default function Sidebar({
                 }`}
               >
                 {isActive && (
-                  <motion.div
-                    layoutId="activeTabIndicator"
+                  <div
                     className="absolute inset-0 bg-neutral-950 rounded-lg -z-10 shadow-premium"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                   />
                 )}
                 <Icon size={16} className="relative z-10" />
