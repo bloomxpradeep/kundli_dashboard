@@ -1,8 +1,25 @@
 import React from 'react';
 import Modal from '../../Shared/Modal/Modal';
-import { ExternalLink, Copy } from 'lucide-react';
+import { ExternalLink, Copy, AlertCircle } from 'lucide-react';
 
 export default function OrderDetailsModal({ selectedOrder, setSelectedOrder, addToast, isAdmin = false }) {
+  const formatError = (errorText) => {
+    if (!errorText) return null;
+    const lowerError = String(errorText).toLowerCase();
+    
+    if (lowerError.includes('time_of_birth')) {
+      return "The Time of Birth is missing or invalid. Please check the customer's birth details and try again.";
+    }
+    if (lowerError.includes('date_of_birth')) {
+      return "The Date of Birth is missing or invalid. Please check the customer's birth details and try again.";
+    }
+    if (lowerError.includes('place') || lowerError.includes('location')) {
+      return "We couldn't process the Place of Birth. Please ensure a valid city/location was provided.";
+    }
+    
+    return `Generation failed: ${errorText}`;
+  };
+
   return (
     <Modal
       isOpen={!!selectedOrder}
@@ -154,8 +171,11 @@ export default function OrderDetailsModal({ selectedOrder, setSelectedOrder, add
                 </button>
               </div>
             ) : (selectedOrder.kundli_error || selectedOrder.error_detail) ? (
-              <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700 font-mono text-xs break-all whitespace-pre-wrap">
-                {selectedOrder.kundli_error || selectedOrder.error_detail}
+              <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-700 shadow-sm">
+                <AlertCircle size={18} className="mt-0.5 flex-shrink-0 text-red-500" />
+                <div className="text-sm font-medium leading-relaxed">
+                  {formatError(selectedOrder.kundli_error || selectedOrder.error_detail)}
+                </div>
               </div>
             ) : (
               <p className="text-sm text-text-muted italic bg-neutral-50 border border-border-subtle rounded-xl p-4 text-center">No delivery output generated yet.</p>
