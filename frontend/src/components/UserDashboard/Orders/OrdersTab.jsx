@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Sparkles, History, Search, ExternalLink, AlertCircle, XCircle } from 'lucide-react';
+import { FileText, Sparkles, History, Search, ExternalLink, AlertCircle, XCircle, Download } from 'lucide-react';
 import DatePicker from '../../Shared/DatePicker/DatePicker';
+import * as XLSX from 'xlsx';
 
 export default function OrdersTab({
   loading,
@@ -10,6 +11,8 @@ export default function OrdersTab({
   setSearchQuery,
   statusFilter,
   setStatusFilter,
+  reportTypeFilter,
+  setReportTypeFilter,
   dateFilter,
   setDateFilter,
   customStartDate,
@@ -21,6 +24,92 @@ export default function OrdersTab({
   PAGE_SIZE,
   setSelectedOrder
 }) {
+  const uniqueStatuses = React.useMemo(() => {
+    const statuses = kundliOrders.map(o => (o.kundli_status || o.status)?.toLowerCase()).filter(Boolean);
+    return [...new Set(statuses)].sort();
+  }, [kundliOrders]);
+
+  const uniqueReportTypes = React.useMemo(() => {
+    const types = kundliOrders.map(o => (o.report_tier || o.report_name)?.toLowerCase()).filter(Boolean);
+    return [...new Set(types)].sort();
+  }, [kundliOrders]);
+
+  const filteredOrders = kundliOrders
+    .filter(order => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = (
+        (order.name && order.name.toLowerCase().includes(q)) ||
+        (order.email && order.email.toLowerCase().includes(q)) ||
+        (order.phone && order.phone.includes(q)) ||
+        (order.order_id && order.order_id.toLowerCase().includes(q)) ||
+        (order.order_total_amount_raw && order.order_total_amount_raw.includes(q))
+      );
+      if (!matchesSearch) return false;
+      if (statusFilter !== 'all' && (order.kundli_status || order.status) !== statusFilter) return false;
+      if (reportTypeFilter !== 'all' && (order.report_tier || order.report_name)?.toLowerCase() !== reportTypeFilter) return false;
+      if (dateFilter === 'all') return true;
+      const d = new Date(order.created_at);
+      const now = new Date();
+      if (dateFilter === 'today') return d.toDateString() === now.toDateString();
+      if (dateFilter === '7days') { const x = new Date(now); x.setDate(now.getDate() - 7); return d >= x; }
+      if (dateFilter === '30days') { const x = new Date(now); x.setDate(now.getDate() - 30); return d >= x; }
+      if (dateFilter === '90days') { const x = new Date(now); x.setDate(now.getDate() - 90); return d >= x; }
+      if (dateFilter === 'custom') {
+        if (customStartDate && customEndDate) {
+          const s = new Date(customStartDate); s.setHours(0, 0, 0, 0);
+          const e = new Date(customEndDate); e.setHours(23, 59, 59, 999);
+          return d >= s && d <= e;
+        }
+        if (customStartDate) { const s = new Date(customStartDate); s.setHours(0, 0, 0, 0); return d >= s; }
+        if (customEndDate) { const e = new Date(customEndDate); e.setHours(23, 59, 59, 999); return d <= e; }
+      }
+      return true;
+    })
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  const handleExport = (type) => {
+    const exportData = filteredOrders.map(order => {
+      // Amount mapping
+      const amount = order.order_total_amount ? `₹${order.order_total_amount}` : (order.amount_rupees ? `₹${order.amount_rupees}` : (order.amount_paise ? `₹${order.amount_paise}` : '-'));
+      const currency = order.currency || '';
+      
+      // DOB mapping
+      const dob = order.dob_day ? `${order.dob_day}/${order.dob_month}/${order.dob_year}` : (order.date_of_birth || '-');
+      const tob = order.birth_hour != null ? `${String(order.birth_hour).padStart(2, '0')}:${String(order.birth_min || 0).padStart(2, '0')} ${order.am_pm || ''}` : (order.time_of_birth || '-');
+      
+      return {
+        'Order ID': order.order_id || 'N/A',
+        'Order Timestamp': new Date(order.created_at).toLocaleString(),
+        'Last Updated': new Date(order.updated_at).toLocaleString(),
+        'Customer Name': order.name || 'N/A',
+        'Email': order.email || 'N/A',
+        'Phone': order.phone || 'N/A',
+        'Report Tier': order.report_tier || order.report_name || 'N/A',
+        'Language': order.language || order.lang || order.report_language || 'N/A',
+        'Amount Paid': `${amount} ${currency}`.trim(),
+        'Status': order.kundli_status || order.status || 'N/A',
+        'Date of Birth': dob,
+        'Time of Birth': tob,
+        'Gender': order.gender || '-',
+        'Place of Birth': order.place_of_birth || order.place || '-',
+        'State': order.state || '-',
+        'Pincode': order.pin_code || order.pincode || '-',
+        'Coordinates (Lat/Lon)': (order.latitude != null || order.lat != null) ? `${order.latitude || order.lat}, ${order.longitude || order.lon}` : '-',
+        'Timezone': order.tzone != null ? order.tzone : '-',
+        'Payment ID': order.payment_id || order.payment_status || '-',
+        'Delivery Drive Link': order.kundli_drive_link || order.drive_link || '-',
+        'Delivery Error': order.kundli_error || order.error_detail || '-'
+      };
+    });
+    
+    if (exportData.length === 0) return;
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+    XLSX.writeFile(workbook, `orders_export.${type}`);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -65,7 +154,7 @@ export default function OrdersTab({
             </div>
           </div>
           <div className="text-2xl font-bold text-red-600">
-            {loading ? '…' : kundliOrders.filter(o => ['failed', 'drive_failed'].includes((o.kundli_status || o.status)?.toLowerCase())).length}
+            {loading ? '…' : kundliOrders.filter(o => ['failed', 'drive_failed', 'failed_permanent'].includes((o.kundli_status || o.status)?.toLowerCase())).length}
           </div>
           <span className="text-[10px] text-text-muted">Generation failed</span>
         </div>
@@ -73,91 +162,138 @@ export default function OrdersTab({
 
       {/* Orders Table */}
       <section className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle flex flex-col">
-        <div className="px-4 py-3 border-b border-border-subtle flex items-center gap-3 flex-wrap">
-          {/* Search */}
-          <div className="relative w-72">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={13} className="text-text-muted" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search name, email, Order ID, amount..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-4 py-[7px] bg-neutral-50 border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 focus:bg-white transition"
-            />
-          </div>
-
-          {/* Divider */}
-          <div className="h-6 w-px bg-border-subtle" />
-
-          {/* Status filter */}
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-[7px] bg-neutral-50 border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 focus:bg-white text-text-main cursor-pointer"
-            >
-              <option value="all">All Status</option>
-              <option value="created">Created</option>
-              <option value="paid">Paid</option>
-              <option value="generated_no_archive">Generated</option>
-              <option value="archived">Archived</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted" />
-              </svg>
+        <div className="px-4 py-4 border-b border-border-subtle flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h3 className="text-sm font-semibold text-text-main">Order History</h3>
+            
+            {/* Export Buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleExport('csv')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 border border-border-subtle rounded-lg text-xs font-medium text-text-main transition shadow-sm"
+                title="Export as CSV"
+              >
+                <Download size={13} />
+                Export CSV
+              </button>
+              <button
+                onClick={() => handleExport('xlsx')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 border border-border-subtle rounded-lg text-xs font-medium text-text-main transition shadow-sm"
+                title="Export as Excel"
+              >
+                <Download size={13} />
+                Export XLS
+              </button>
             </div>
           </div>
 
-          {/* Divider between Status and Date */}
-          <div className="h-6 w-px bg-border-subtle" />
-
-          {/* Date preset */}
-          <div className="relative">
-            <select
-              value={dateFilter}
-              onChange={(e) => {
-                setDateFilter(e.target.value);
-                if (e.target.value !== 'custom') {
-                  setCustomStartDate('');
-                  setCustomEndDate('');
-                }
-              }}
-              className="appearance-none pl-3 pr-8 py-[7px] bg-neutral-50 border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 focus:bg-white text-text-main cursor-pointer"
-            >
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="7days">Last 7 Days</option>
-              <option value="30days">Last 30 Days</option>
-              <option value="90days">Last 90 Days</option>
-              <option value="custom" hidden>Custom</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted" />
-              </svg>
+          <div className="flex flex-wrap items-center gap-3 bg-neutral-50/50 p-2.5 rounded-lg border border-border-subtle/50">
+            {/* Search */}
+            <div className="relative flex-grow md:max-w-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={13} className="text-text-muted" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search name, email, Order ID, amount..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-4 py-[7px] bg-white border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 transition"
+              />
             </div>
-          </div>
 
-          {/* Custom date range pickers */}
-          <div className="flex items-center gap-2">
-            <DatePicker
-              value={customStartDate}
-              onChange={(val) => { setCustomStartDate(val); setDateFilter('custom'); }}
-              placeholder="From date"
-              maxDate={customEndDate || undefined}
-              align="left"
-            />
-            <span className="text-text-muted text-xs font-medium">—</span>
-            <DatePicker
-              value={customEndDate}
-              onChange={(val) => { setCustomEndDate(val); setDateFilter('custom'); }}
-              placeholder="To date"
-              minDate={customStartDate || undefined}
-              align="right"
-            />
+            <div className="h-6 w-px bg-border-subtle hidden md:block" />
+
+            <div className="relative">
+              <select
+                value={reportTypeFilter}
+                onChange={(e) => setReportTypeFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-[7px] bg-white border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 text-text-main cursor-pointer"
+              >
+                <option value="all">All Report Types</option>
+                {uniqueReportTypes.map(type => (
+                  <option key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ')}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="h-6 w-px bg-border-subtle hidden md:block" />
+
+            {/* Status filter */}
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-[7px] bg-white border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 text-text-main cursor-pointer"
+              >
+                <option value="all">All Status</option>
+                {uniqueStatuses.map(status => (
+                  <option key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="h-6 w-px bg-border-subtle hidden md:block" />
+
+            {/* Date preset */}
+            <div className="relative">
+              <select
+                value={dateFilter}
+                onChange={(e) => {
+                  setDateFilter(e.target.value);
+                  if (e.target.value !== 'custom') {
+                    setCustomStartDate('');
+                    setCustomEndDate('');
+                  }
+                }}
+                className="appearance-none pl-3 pr-8 py-[7px] bg-white border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 text-text-main cursor-pointer"
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="7days">Last 7 Days</option>
+                <option value="30days">Last 30 Days</option>
+                <option value="90days">Last 90 Days</option>
+                <option value="custom" hidden>Custom</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Custom date range pickers */}
+            <div className="flex items-center gap-2">
+              <DatePicker
+                value={customStartDate}
+                onChange={(val) => { setCustomStartDate(val); setDateFilter('custom'); }}
+                placeholder="From date"
+                maxDate={customEndDate || undefined}
+                align="left"
+              />
+              <span className="text-text-muted text-xs font-medium">—</span>
+              <DatePicker
+                value={customEndDate}
+                onChange={(val) => { setCustomEndDate(val); setDateFilter('custom'); }}
+                placeholder="To date"
+                minDate={customStartDate || undefined}
+                align="right"
+              />
+            </div>
           </div>
         </div>
         <div className="overflow-hidden custom-scrollbar overflow-x-auto rounded-b-xl">
@@ -181,38 +317,6 @@ export default function OrdersTab({
                 if (kundliOrders.length === 0) return (
                   <tr><td colSpan={7} className="p-8 text-center text-text-muted">No Kundli reports purchased yet.</td></tr>
                 );
-
-                const filteredOrders = kundliOrders
-                  .filter(order => {
-                    const q = searchQuery.toLowerCase();
-                    const matchesSearch = (
-                      (order.name && order.name.toLowerCase().includes(q)) ||
-                      (order.email && order.email.toLowerCase().includes(q)) ||
-                      (order.phone && order.phone.includes(q)) ||
-                      (order.order_id && order.order_id.toLowerCase().includes(q)) ||
-                      (order.order_total_amount_raw && order.order_total_amount_raw.includes(q))
-                    );
-                    if (!matchesSearch) return false;
-                    if (statusFilter !== 'all' && (order.kundli_status || order.status) !== statusFilter) return false;
-                    if (dateFilter === 'all') return true;
-                    const d = new Date(order.created_at);
-                    const now = new Date();
-                    if (dateFilter === 'today') return d.toDateString() === now.toDateString();
-                    if (dateFilter === '7days') { const x = new Date(now); x.setDate(now.getDate() - 7); return d >= x; }
-                    if (dateFilter === '30days') { const x = new Date(now); x.setDate(now.getDate() - 30); return d >= x; }
-                    if (dateFilter === '90days') { const x = new Date(now); x.setDate(now.getDate() - 90); return d >= x; }
-                    if (dateFilter === 'custom') {
-                      if (customStartDate && customEndDate) {
-                        const s = new Date(customStartDate); s.setHours(0, 0, 0, 0);
-                        const e = new Date(customEndDate); e.setHours(23, 59, 59, 999);
-                        return d >= s && d <= e;
-                      }
-                      if (customStartDate) { const s = new Date(customStartDate); s.setHours(0, 0, 0, 0); return d >= s; }
-                      if (customEndDate) { const e = new Date(customEndDate); e.setHours(23, 59, 59, 999); return d <= e; }
-                    }
-                    return true;
-                  })
-                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
                 const paginatedOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 

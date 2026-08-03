@@ -37,6 +37,7 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
   const [customEndDate, setCustomEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [reportTypeFilter, setReportTypeFilter] = useState('all');
   const PAGE_SIZE = 10;
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
   }, []);
 
   // Reset to page 1 whenever filters change
-  useEffect(() => { setCurrentPage(1); }, [searchQuery, dateFilter, customStartDate, customEndDate, statusFilter]);
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, dateFilter, customStartDate, customEndDate, statusFilter, reportTypeFilter]);
 
   const fetchUserData = async () => {
     setLoading(true);
@@ -286,6 +287,8 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
             setSearchQuery={setSearchQuery}
             statusFilter={statusFilter}
             setStatusFilter={setStatusFilter}
+            reportTypeFilter={reportTypeFilter}
+            setReportTypeFilter={setReportTypeFilter}
             dateFilter={dateFilter}
             setDateFilter={setDateFilter}
             customStartDate={customStartDate}

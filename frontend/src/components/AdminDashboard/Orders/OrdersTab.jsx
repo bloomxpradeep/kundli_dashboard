@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, ExternalLink, FileText, History, XCircle } from 'lucide-react';
+import { Search, ExternalLink, FileText, History, XCircle, Download } from 'lucide-react';
 import DatePicker from '../../Shared/DatePicker/DatePicker';
+import * as XLSX from 'xlsx';
 
 export default function OrdersTab({
   getOrdersInLastDays,
@@ -14,13 +15,24 @@ export default function OrdersTab({
   const ITEMS_PER_PAGE = 10;
   
   const [statusFilter, setStatusFilter] = useState('all');
+  const [reportTypeFilter, setReportTypeFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
+  const uniqueStatuses = React.useMemo(() => {
+    const statuses = kundliOrders.map(o => (o.kundli_status || o.status)?.toLowerCase()).filter(Boolean);
+    return [...new Set(statuses)].sort();
+  }, [kundliOrders]);
+
+  const uniqueReportTypes = React.useMemo(() => {
+    const types = kundliOrders.map(o => (o.report_tier || o.report_name)?.toLowerCase()).filter(Boolean);
+    return [...new Set(types)].sort();
+  }, [kundliOrders]);
+
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [ordersSearchQuery, statusFilter, dateFilter, customStartDate, customEndDate]);
+  }, [ordersSearchQuery, statusFilter, reportTypeFilter, dateFilter, customStartDate, customEndDate]);
 
   const filteredOrders = kundliOrders
     .filter(order => {
@@ -35,6 +47,7 @@ export default function OrdersTab({
       
       if (!matchesSearch) return false;
       if (statusFilter !== 'all' && (order.kundli_status || order.status) !== statusFilter) return false;
+      if (reportTypeFilter !== 'all' && (order.report_tier || order.report_name)?.toLowerCase() !== reportTypeFilter) return false;
       
       if (dateFilter === 'all') return true;
       const d = new Date(order.created_at);
@@ -61,6 +74,51 @@ export default function OrdersTab({
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  const handleExport = (type) => {
+    const exportData = filteredOrders.map(order => {
+      // Amount mapping
+      const amount = order.order_total_amount ? `₹${order.order_total_amount}` : (order.amount_rupees ? `₹${order.amount_rupees}` : (order.amount_paise ? `₹${order.amount_paise}` : '-'));
+      const currency = order.currency || '';
+      
+      // DOB mapping
+      const dob = order.dob_day ? `${order.dob_day}/${order.dob_month}/${order.dob_year}` : (order.date_of_birth || '-');
+      const tob = order.birth_hour != null ? `${String(order.birth_hour).padStart(2, '0')}:${String(order.birth_min || 0).padStart(2, '0')} ${order.am_pm || ''}` : (order.time_of_birth || '-');
+      
+      return {
+        'Order ID': order.order_id || 'N/A',
+        'Order Timestamp': new Date(order.created_at).toLocaleString(),
+        'Last Updated': new Date(order.updated_at).toLocaleString(),
+        'Customer Name': order.name || 'N/A',
+        'Email': order.email || 'N/A',
+        'Phone': order.phone || 'N/A',
+        'Report Tier': order.report_tier || order.report_name || 'N/A',
+        'Language': order.language || order.lang || order.report_language || 'N/A',
+        'Amount Paid': `${amount} ${currency}`.trim(),
+        'Base Cost (Raw)': order.order_total_amount_raw ? `₹${order.order_total_amount_raw}` : '-',
+        'Status': order.kundli_status || order.status || 'N/A',
+        'Date of Birth': dob,
+        'Time of Birth': tob,
+        'Gender': order.gender || '-',
+        'Place of Birth': order.place_of_birth || order.place || '-',
+        'State': order.state || '-',
+        'Pincode': order.pin_code || order.pincode || '-',
+        'Coordinates (Lat/Lon)': (order.latitude != null || order.lat != null) ? `${order.latitude || order.lat}, ${order.longitude || order.lon}` : '-',
+        'Timezone': order.tzone != null ? order.tzone : '-',
+        'Payment ID': order.payment_id || order.payment_status || '-',
+        'Drive Save Attempts': order.kundli_attempts != null ? order.kundli_attempts : '-',
+        'Delivery Drive Link': order.kundli_drive_link || order.drive_link || '-',
+        'Delivery Error': order.kundli_error || order.error_detail || '-'
+      };
+    });
+    
+    if (exportData.length === 0) return;
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+    XLSX.writeFile(workbook, `orders_export.${type}`);
+  };
 
   return (
     <motion.div 
@@ -106,7 +164,7 @@ export default function OrdersTab({
             </div>
           </div>
           <div className="text-2xl font-bold text-red-600">
-            {kundliOrders.filter(o => ['failed', 'drive_failed'].includes((o.kundli_status || o.status)?.toLowerCase())).length}
+            {kundliOrders.filter(o => ['failed', 'drive_failed', 'failed_permanent'].includes((o.kundli_status || o.status)?.toLowerCase())).length}
           </div>
           <span className="text-[10px] text-text-muted">Generation failed</span>
         </div>
@@ -114,10 +172,33 @@ export default function OrdersTab({
 
       {/* Orders list table */}
       <section className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle flex flex-col gap-0">
-        <div className="px-4 py-3 border-b border-border-subtle flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <h3 className="text-sm font-semibold text-text-main">Detailed Kundli Purchase History</h3>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative w-full md:w-64">
+        <div className="px-4 py-4 border-b border-border-subtle flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h3 className="text-sm font-semibold text-text-main">Detailed Kundli Purchase History</h3>
+            
+            {/* Export Buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleExport('csv')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 border border-border-subtle rounded-lg text-xs font-medium text-text-main transition shadow-sm"
+                title="Export as CSV"
+              >
+                <Download size={13} />
+                Export CSV
+              </button>
+              <button
+                onClick={() => handleExport('xlsx')}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 border border-border-subtle rounded-lg text-xs font-medium text-text-main transition shadow-sm"
+                title="Export as Excel"
+              >
+                <Download size={13} />
+                Export XLS
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 bg-neutral-50/50 p-2.5 rounded-lg border border-border-subtle/50">
+            <div className="relative flex-grow md:max-w-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search size={14} className="text-text-muted" />
               </div>
@@ -126,8 +207,30 @@ export default function OrdersTab({
                 placeholder="Search name, email, Order ID, amount..."
                 value={ordersSearchQuery}
                 onChange={(e) => setOrdersSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-neutral-50 border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 focus:bg-white transition"
+                className="w-full pl-9 pr-4 py-[7px] bg-white border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 transition"
               />
+            </div>
+
+            <div className="h-6 w-px bg-border-subtle hidden md:block" />
+
+            <div className="relative">
+              <select
+                value={reportTypeFilter}
+                onChange={(e) => setReportTypeFilter(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-[7px] bg-white border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 text-text-main cursor-pointer"
+              >
+                <option value="all">All Report Types</option>
+                {uniqueReportTypes.map(type => (
+                  <option key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ')}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted" />
+                </svg>
+              </div>
             </div>
 
             <div className="h-6 w-px bg-border-subtle hidden md:block" />
@@ -136,13 +239,14 @@ export default function OrdersTab({
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 bg-neutral-50 border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 focus:bg-white text-text-main cursor-pointer"
+                className="appearance-none pl-3 pr-8 py-[7px] bg-white border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 text-text-main cursor-pointer"
               >
                 <option value="all">All Status</option>
-                <option value="created">Created</option>
-                <option value="paid">Paid</option>
-                <option value="generated_no_archive">Generated</option>
-                <option value="archived">Archived</option>
+                {uniqueStatuses.map(status => (
+                  <option key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')}
+                  </option>
+                ))}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -163,7 +267,7 @@ export default function OrdersTab({
                     setCustomEndDate('');
                   }
                 }}
-                className="appearance-none pl-3 pr-8 py-2 bg-neutral-50 border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 focus:bg-white text-text-main cursor-pointer"
+                className="appearance-none pl-3 pr-8 py-[7px] bg-white border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 text-text-main cursor-pointer"
               >
                 <option value="all">All Time</option>
                 <option value="today">Today</option>
