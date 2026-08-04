@@ -1,6 +1,24 @@
 const supabaseAdmin = require('../config/supabase');
 const bcrypt = require('bcryptjs');
 
+const fetchAllOrders = async () => {
+  let allData = [];
+  let start = 0;
+  const limit = 1000;
+  while (true) {
+    const { data, error } = await supabaseAdmin
+      .from('sheet_orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(start, start + limit - 1);
+    if (error) throw error;
+    if (data) allData = allData.concat(data);
+    if (!data || data.length < limit) break;
+    start += limit;
+  }
+  return allData;
+};
+
 exports.createUser = async (req, res) => {
   try {
     const { username, password, fullName } = req.body;
@@ -101,13 +119,13 @@ exports.allocateCredits = async (req, res) => {
 
 exports.getDashboard = async (req, res) => {
   try {
-    const [usersRes, transRes, ordersRes] = await Promise.all([
+    const [usersRes, transRes, allOrders] = await Promise.all([
       supabaseAdmin.from('astrologers').select('*').order('created_at', { ascending: false }),
       supabaseAdmin.from('credit_transactions').select(`
         *,
         astrologers ( name, username )
       `).neq('type', 'deduct').order('created_at', { ascending: false }),
-      supabaseAdmin.from('sheet_orders').select('*').order('created_at', { ascending: false })
+      fetchAllOrders()
     ]);
 
     // Calculate global stats dynamically instead of company_settings
@@ -120,7 +138,7 @@ exports.getDashboard = async (req, res) => {
       users: usersRes.data || [],
       transactions: transactionsWithBalance,
       companySettings: { total_credits: total_credits_available }, // Shim for backward compatibility
-      orders: ordersRes.data || []
+      orders: allOrders || []
     });
   } catch (error) {
     console.error('getDashboard catch block:', error);
