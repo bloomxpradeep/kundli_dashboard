@@ -1,12 +1,44 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Users } from 'lucide-react';
+import { CreditCard, Users, Coins, History } from 'lucide-react';
 
 export default function TransactionsTab({
   loading,
-  transactions
+  transactions,
+  companySettings
 }) {
   return (
+    <div className="flex flex-col gap-6">
+      <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-6 flex flex-col justify-between gap-3">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Total User Credits Available</span>
+            <div className="p-1.5 bg-neutral-50 text-text-main border border-border-subtle rounded-lg">
+              <Coins size={16} />
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <div className="text-3xl font-bold text-text-main leading-none">
+              {companySettings?.total_credits || 0}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-6 flex flex-col justify-between gap-3">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Total Credits Used</span>
+            <div className="p-1.5 bg-neutral-50 text-text-main border border-border-subtle rounded-lg">
+              <History size={16} />
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <div className="text-3xl font-bold text-text-main leading-none">
+              {companySettings?.total_credits_used || 0}
+            </div>
+          </div>
+        </div>
+      </section>
+
     <motion.section 
       initial={{ opacity: 0, y: 15 }} 
       animate={{ opacity: 1, y: 0 }} 
@@ -86,5 +118,6 @@ export default function TransactionsTab({
         </table>
       </div>
     </motion.section>
+    </div>
   );
 }

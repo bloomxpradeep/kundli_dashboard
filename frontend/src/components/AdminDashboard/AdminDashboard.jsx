@@ -437,6 +437,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
             loading={loading}
             transactions={transactions}
             getUserEmail={getUserEmail}
+            companySettings={companySettings}
           />
         )}
       </main>

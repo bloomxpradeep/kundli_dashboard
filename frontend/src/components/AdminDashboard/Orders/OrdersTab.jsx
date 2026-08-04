@@ -42,6 +42,7 @@ export default function OrdersTab({
       setDateFilter('all');
       setCustomStartDate('');
       setCustomEndDate('');
+      setCurrentPage(1);
     }
   }, [refreshTrigger]);
 
@@ -170,15 +171,30 @@ export default function OrdersTab({
         {/* Failed */}
         <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-4 flex flex-col gap-2 hover:shadow-premium transition">
           <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Failed</span>
+            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Failed Orders</span>
             <div className="p-1.5 bg-red-50 border border-red-100 rounded-lg text-red-600">
               <XCircle size={14} />
             </div>
           </div>
-          <div className="text-2xl font-bold text-red-600">
-            {kundliOrders.filter(o => ['failed', 'drive_failed', 'failed_permanent'].includes((o.kundli_status || o.status)?.toLowerCase())).length}
+          <div className="flex flex-wrap items-center gap-4 mt-1">
+            <div className="flex flex-col">
+              <span className="text-2xl font-bold text-red-600 leading-none">
+                {kundliOrders.filter(o => ['failed', 'drive_failed', 'failed_permanent'].includes((o.kundli_status || o.status)?.toLowerCase())).length}
+              </span>
+              <span className="text-[10px] text-text-muted mt-1 uppercase tracking-wider">Overall</span>
+            </div>
+            <div className="h-8 w-px bg-border-subtle"></div>
+            <div className="flex flex-col">
+              <span className="text-2xl font-bold text-red-500 leading-none">
+                {kundliOrders.filter(o => {
+                  const status = (o.kundli_status || o.status)?.toLowerCase();
+                  if (!['failed', 'drive_failed', 'failed_permanent'].includes(status)) return false;
+                  return (new Date() - new Date(o.created_at)) <= 24 * 60 * 60 * 1000;
+                }).length}
+              </span>
+              <span className="text-[10px] text-text-muted mt-1 uppercase tracking-wider">Last 24 Hours</span>
+            </div>
           </div>
-          <span className="text-[10px] text-text-muted">Generation failed</span>
         </div>
       </section>
 

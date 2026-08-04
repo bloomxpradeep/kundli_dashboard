@@ -156,7 +156,13 @@ export default function OrdersTab({
             </div>
           </div>
           <div className="text-2xl font-bold text-red-600">
-            {loading ? '…' : kundliOrders.filter(o => ['failed', 'drive_failed', 'failed_permanent'].includes((o.kundli_status || o.status)?.toLowerCase())).length}
+            {loading ? '…' : kundliOrders.filter(o => {
+              const status = (o.kundli_status || o.status)?.toLowerCase();
+              if (!['failed', 'drive_failed', 'failed_permanent'].includes(status)) return false;
+              const createdAt = new Date(o.created_at);
+              const now = new Date();
+              return (now - createdAt) <= 24 * 60 * 60 * 1000;
+            }).length}
           </div>
           <span className="text-[10px] text-text-muted">Generation failed</span>
         </div>

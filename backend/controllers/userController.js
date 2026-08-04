@@ -22,7 +22,7 @@ exports.getDashboard = async (req, res) => {
   try {
     const [transRes, astrologerRes, allOrders] = await Promise.all([
       supabaseAdmin.from('credit_transactions').select('*').eq('astrologer_id', req.user.id).neq('type', 'deduct').order('created_at', { ascending: false }),
-      supabaseAdmin.from('astrologers').select('credits_balance, balance_after').eq('id', req.user.id).single(),
+      supabaseAdmin.from('astrologers').select('credits_balance, balance_after, total_credits_used').eq('id', req.user.id).single(),
       fetchAllOrders()
     ]);
 
@@ -33,7 +33,7 @@ exports.getDashboard = async (req, res) => {
       transactions: transactionsWithBalance,
       companySettings: { 
         total_credits: parseInt(astrologerRes.data?.credits_balance || '0', 10),
-        credits_used: creditsUsed >= 0 ? creditsUsed : 0
+        credits_used: parseInt(astrologerRes.data?.total_credits_used || '0', 10)
       }, 
       orders: allOrders || []
     });

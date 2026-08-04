@@ -86,7 +86,7 @@ exports.allocateCredits = async (req, res) => {
         astrologer_id: targetUserId,
         type: 'assign',
         amount: amount,
-        total_credits_assigned: newBalanceAfter.toString(),
+        total_credits_assigned: newCreditsBalance.toString(),
         note: reason || 'Manual Admin Allocation',
         created_by: adminEmail || 'Admin'
       })
@@ -131,13 +131,14 @@ exports.getDashboard = async (req, res) => {
     // Calculate global stats dynamically instead of company_settings
     // Calculate total credits available from the latest credits_balance of each user
     const total_credits_available = (usersRes.data || []).reduce((sum, u) => sum + parseInt(u.credits_balance || '0', 10), 0);
+    const total_credits_used = (usersRes.data || []).reduce((sum, u) => sum + parseInt(u.total_credits_used || '0', 10), 0);
     
     const transactionsWithBalance = transRes.data || [];
     
     res.status(200).json({
       users: usersRes.data || [],
       transactions: transactionsWithBalance,
-      companySettings: { total_credits: total_credits_available }, // Shim for backward compatibility
+      companySettings: { total_credits: total_credits_available, total_credits_used: total_credits_used }, // Shim for backward compatibility
       orders: allOrders || []
     });
   } catch (error) {
