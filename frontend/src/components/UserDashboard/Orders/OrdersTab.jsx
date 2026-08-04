@@ -37,15 +37,17 @@ export default function OrdersTab({
   const filteredOrders = kundliOrders
     .filter(order => {
       const q = searchQuery.toLowerCase();
-      const matchesSearch = (
-        (order.name && order.name.toLowerCase().includes(q)) ||
-        (order.email && order.email.toLowerCase().includes(q)) ||
-        (order.phone && order.phone.includes(q)) ||
-        (order.order_id && order.order_id.toLowerCase().includes(q)) ||
-        (order.order_total_amount_raw && order.order_total_amount_raw.includes(q))
-      );
-      if (!matchesSearch) return false;
-      if (statusFilter !== 'all' && (order.kundli_status || order.status) !== statusFilter) return false;
+      if (q) {
+        const matchesSearch = (
+          (order.name && order.name.toLowerCase().includes(q)) ||
+          (order.email && order.email.toLowerCase().includes(q)) ||
+          (order.phone && order.phone.includes(q)) ||
+          (order.order_id && order.order_id.toLowerCase().includes(q)) ||
+          (order.order_total_amount_raw && order.order_total_amount_raw.includes(q))
+        );
+        if (!matchesSearch) return false;
+      }
+      if (statusFilter !== 'all' && (order.kundli_status || order.status)?.toLowerCase() !== statusFilter) return false;
       if (reportTypeFilter !== 'all' && (order.report_tier || order.report_name)?.toLowerCase() !== reportTypeFilter) return false;
       if (dateFilter === 'all') return true;
       const d = new Date(order.created_at);

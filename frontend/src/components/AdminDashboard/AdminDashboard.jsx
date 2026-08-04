@@ -20,6 +20,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [ordersSearchQuery, setOrdersSearchQuery] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Modals state
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -345,7 +346,12 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
 
           <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
             <button
-              onClick={() => fetchDashboardData()}
+              onClick={() => {
+                setSearchQuery('');
+                setOrdersSearchQuery('');
+                setRefreshTrigger(prev => prev + 1);
+                fetchDashboardData();
+              }}
               className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-neutral-950 hover:bg-neutral-800 text-white border-none text-sm font-semibold rounded-lg shadow-sm transition"
               title="Refresh Data"
             >
@@ -421,6 +427,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
             kundliOrders={kundliOrders}
             ordersSearchQuery={ordersSearchQuery}
             setOrdersSearchQuery={setOrdersSearchQuery}
+            refreshTrigger={refreshTrigger}
             setSelectedOrder={setSelectedOrder}
           />
         )}

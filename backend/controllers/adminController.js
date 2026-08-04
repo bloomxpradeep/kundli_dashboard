@@ -106,7 +106,7 @@ exports.getDashboard = async (req, res) => {
       supabaseAdmin.from('credit_transactions').select(`
         *,
         astrologers ( name, username )
-      `).order('created_at', { ascending: false }),
+      `).neq('type', 'deduct').order('created_at', { ascending: false }),
       supabaseAdmin.from('sheet_orders').select('*').order('created_at', { ascending: false })
     ]);
 

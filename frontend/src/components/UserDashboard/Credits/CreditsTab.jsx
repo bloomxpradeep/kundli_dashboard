@@ -72,28 +72,7 @@ export default function CreditsTab({ companySettings, transactions, setIsCreditP
             </button> */}
           </div>
         </div>
-        <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-6 flex flex-col justify-between gap-3">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Credits Used</span>
-            <div className="p-1.5 bg-neutral-50 text-text-main border border-border-subtle rounded-lg">
-              <History size={16} />
-            </div>
-          </div>
-          <div className="text-3xl font-bold text-text-main leading-none">
-            {transactions.filter(t => t.type === 'deduct').reduce((sum, t) => sum + (t.amount || 0), 0)}
-          </div>
-        </div>
-        <div className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-6 flex flex-col justify-between gap-3">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Total Top-ups</span>
-            <div className="p-1.5 bg-neutral-50 text-text-main border border-border-subtle rounded-lg">
-              <Coins size={16} />
-            </div>
-          </div>
-          <div className="text-3xl font-bold text-text-main leading-none">
-            {transactions.filter(t => t.type === 'assign').reduce((sum, t) => sum + (t.amount || 0), 0)}
-          </div>
-        </div>
+
       </section>
 
       <section className="bg-bg-card border border-border-subtle rounded-xl shadow-subtle p-6">
@@ -109,14 +88,15 @@ export default function CreditsTab({ companySettings, transactions, setIsCreditP
               </tr>
             </thead>
             <tbody className="divide-y divide-border-subtle">
-              {transactions.length === 0 ? (
+              {transactions.filter(t => t.type !== 'deduct').length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-text-muted">
-                    No credit activity logged.
+                    No billing activity logged.
                   </td>
                 </tr>
               ) : (
                 transactions
+                  .filter(t => t.type !== 'deduct')
                   .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
                   .map((t) => {
                     const details = getTransactionTypeDetails(t);

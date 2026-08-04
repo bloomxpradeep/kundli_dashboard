@@ -230,18 +230,27 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
               {activeTab === 'overview' && 'Overview'}
               {activeTab === 'orders' && 'Orders'}
               {activeTab === 'analytics' && 'Order Analysis'}
-              {activeTab === 'credits' && 'Credit Usage & Logs'}
+              {activeTab === 'credits' && 'Billing & Top-ups'}
             </h1>
             <p className="text-xs text-text-muted mt-1 font-normal">
               {activeTab === 'overview' && 'Overview of company credit balance and astrology report options.'}
               {activeTab === 'orders' && 'All customer orders with insights, filters and pagination.'}
               {activeTab === 'analytics' && 'Visual analysis and demographics of customer orders.'}
-              {activeTab === 'credits' && 'Track your credit purchases, allocations, and how much credit you have used.'}
+              {activeTab === 'credits' && 'Track your credit top-ups, purchases, and allocations.'}
             </p>
           </div>
           <div className="flex items-center gap-3 mt-4 sm:mt-0">
             <button
-              onClick={() => fetchUserData()}
+              onClick={() => {
+                setSearchQuery('');
+                setDateFilter('all');
+                setCustomStartDate('');
+                setCustomEndDate('');
+                setStatusFilter('all');
+                setReportTypeFilter('all');
+                setCurrentPage(1);
+                fetchUserData();
+              }}
               className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-neutral-950 hover:bg-neutral-800 text-white border-none text-sm font-semibold rounded-lg shadow-sm transition"
               title="Refresh Data"
             >

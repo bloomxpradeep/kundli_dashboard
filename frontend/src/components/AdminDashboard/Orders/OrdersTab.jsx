@@ -9,7 +9,8 @@ export default function OrdersTab({
   kundliOrders,
   ordersSearchQuery,
   setOrdersSearchQuery,
-  setSelectedOrder
+  setSelectedOrder,
+  refreshTrigger
 }) {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -34,19 +35,30 @@ export default function OrdersTab({
     setCurrentPage(1);
   }, [ordersSearchQuery, statusFilter, reportTypeFilter, dateFilter, customStartDate, customEndDate]);
 
+  React.useEffect(() => {
+    if (refreshTrigger > 0) {
+      setStatusFilter('all');
+      setReportTypeFilter('all');
+      setDateFilter('all');
+      setCustomStartDate('');
+      setCustomEndDate('');
+    }
+  }, [refreshTrigger]);
+
   const filteredOrders = kundliOrders
     .filter(order => {
-      const searchLower = ordersSearchQuery.toLowerCase();
-      const matchesSearch = (
-        (order.name && order.name.toLowerCase().includes(searchLower)) ||
-        (order.email && order.email.toLowerCase().includes(searchLower)) ||
-        (order.phone && order.phone.includes(searchLower)) ||
-        (order.order_id && order.order_id.toLowerCase().includes(searchLower)) ||
-        (order.order_total_amount_raw && order.order_total_amount_raw.includes(searchLower))
-      );
-      
-      if (!matchesSearch) return false;
-      if (statusFilter !== 'all' && (order.kundli_status || order.status) !== statusFilter) return false;
+      const q = ordersSearchQuery.toLowerCase();
+      if (q) {
+        const matchesSearch = (
+          (order.name && order.name.toLowerCase().includes(q)) ||
+          (order.email && order.email.toLowerCase().includes(q)) ||
+          (order.phone && order.phone.includes(q)) ||
+          (order.order_id && order.order_id.toLowerCase().includes(q)) ||
+          (order.order_total_amount_raw && order.order_total_amount_raw.includes(q))
+        );
+        if (!matchesSearch) return false;
+      }
+      if (statusFilter !== 'all' && (order.kundli_status || order.status)?.toLowerCase() !== statusFilter) return false;
       if (reportTypeFilter !== 'all' && (order.report_tier || order.report_name)?.toLowerCase() !== reportTypeFilter) return false;
       
       if (dateFilter === 'all') return true;
