@@ -19,6 +19,7 @@ export default function AllocateCreditModal({
   const [step, setStep] = useState(1);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [stepSize, setStepSize] = useState(null);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (isOpen) {
@@ -28,12 +29,42 @@ export default function AllocateCreditModal({
       setAllocationReason('');
       setStepSize(null);
       setIsDropdownOpen(false);
+      setErrors({});
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (targetUserId) setErrors(prev => ({ ...prev, targetUserId: '' }));
+  }, [targetUserId]);
+
+  useEffect(() => {
+    if (Number(creditAmount) > 0) setErrors(prev => ({ ...prev, creditAmount: '' }));
+  }, [creditAmount]);
+
+  useEffect(() => {
+    if (allocationReason && allocationReason.trim() !== '') setErrors(prev => ({ ...prev, allocationReason: '' }));
+  }, [allocationReason]);
+
   const handleNext = (e) => {
     e.preventDefault();
+    const newErrors = {};
+    if (!targetUserId) {
+      newErrors.targetUserId = 'Please select a user to allocate credits to.';
+    }
+    if (!creditAmount || Number(creditAmount) <= 0) {
+      newErrors.creditAmount = 'Please enter an amount greater than 0.';
+    }
+    if (!allocationReason || allocationReason.trim() === '') {
+      newErrors.allocationReason = 'Please enter an invoice or reference number.';
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     if (targetUserId && creditAmount && allocationReason) {
+      setErrors({});
       setStep(2);
     }
   };
@@ -62,7 +93,7 @@ export default function AllocateCreditModal({
                 
                 {/* Custom Select Trigger */}
                 <div 
-                  className={`w-full pl-10 pr-10 py-3 text-[13px] border ${isDropdownOpen ? 'border-neutral-300 bg-white shadow-sm ring-4 ring-neutral-900/5' : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50/50'} rounded-xl transition-all cursor-pointer flex items-center select-none ${submittingCredit ? 'opacity-50 pointer-events-none' : ''}`}
+                  className={`w-full pl-10 pr-10 py-3 text-[13px] border ${errors.targetUserId ? 'border-red-500 bg-red-50/50 ring-4 ring-red-500/10' : isDropdownOpen ? 'border-neutral-300 bg-white shadow-sm ring-4 ring-neutral-900/5' : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50/50'} rounded-xl transition-all cursor-pointer flex items-center select-none ${submittingCredit ? 'opacity-50 pointer-events-none' : ''}`}
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 >
                   <span className={`truncate ${!targetUserId ? 'text-neutral-400 font-normal' : 'text-neutral-900 font-semibold'}`}>
@@ -103,6 +134,13 @@ export default function AllocateCreditModal({
                     </div>
                   </>
                 )}
+                
+                {errors.targetUserId && (
+                  <div className="flex items-center gap-1.5 mt-2 text-red-500 animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle size={13} strokeWidth={2.5} />
+                    <span className="text-[11px] font-semibold">{errors.targetUserId}</span>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -125,19 +163,24 @@ export default function AllocateCreditModal({
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <Coins size={16} className="text-neutral-400" />
+                  <Coins size={16} className={`${errors.creditAmount ? 'text-red-400' : 'text-neutral-400'}`} />
                 </div>
                 <input
                   id="add-credits"
                   type="number"
                   min="0"
-                  className="w-full pl-10 pr-4 py-3 text-[13px] font-medium border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 outline-none focus:ring-2 focus:ring-neutral-200 focus:border-neutral-400 focus:bg-white transition-all shadow-sm hover:bg-neutral-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className={`w-full pl-10 pr-4 py-3 text-[13px] font-medium border ${errors.creditAmount ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-red-500/10 focus:border-red-500' : 'border-neutral-200 bg-neutral-50/50 text-neutral-900 focus:ring-neutral-200 focus:border-neutral-400'} rounded-xl outline-none focus:ring-2 focus:bg-white transition-all shadow-sm hover:bg-neutral-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                   value={creditAmount}
                   onChange={(e) => setCreditAmount(e.target.value)}
                   disabled={submittingCredit}
-                  required
                 />
               </div>
+              {errors.creditAmount && (
+                <div className="flex items-center gap-1.5 mt-2 text-red-500 animate-in fade-in slide-in-from-top-1">
+                  <AlertCircle size={13} strokeWidth={2.5} />
+                  <span className="text-[11px] font-semibold">{errors.creditAmount}</span>
+                </div>
+              )}
               <div className="flex gap-2 mt-2.5 items-center">
                 {[100, 200, 500, 1000].map((amt) => (
                   <button
@@ -204,14 +247,19 @@ export default function AllocateCreditModal({
                   id="allocation-reason"
                   type="text"
                   placeholder="e.g. INV-2026-001"
-                  className="w-full pl-10 pr-4 py-3 text-[13px] font-medium border border-neutral-200 rounded-xl bg-neutral-50/50 text-neutral-900 outline-none focus:ring-2 focus:ring-neutral-200 focus:border-neutral-400 focus:bg-white transition-all shadow-sm hover:bg-neutral-50"
+                  className={`w-full pl-10 pr-4 py-3 text-[13px] font-medium border ${errors.allocationReason ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-red-500/10 focus:border-red-500' : 'border-neutral-200 bg-neutral-50/50 text-neutral-900 focus:ring-neutral-200 focus:border-neutral-400'} rounded-xl outline-none focus:ring-2 focus:bg-white transition-all shadow-sm hover:bg-neutral-50`}
                   value={allocationReason}
                   onChange={(e) => setAllocationReason(e.target.value)}
                   disabled={submittingCredit}
                   autoComplete="off"
-                  required
                 />
               </div>
+              {errors.allocationReason && (
+                <div className="flex items-center gap-1.5 mt-2 text-red-500 animate-in fade-in slide-in-from-top-1">
+                  <AlertCircle size={13} strokeWidth={2.5} />
+                  <span className="text-[11px] font-semibold">{errors.allocationReason}</span>
+                </div>
+              )}
             </div>
           </div>
           
