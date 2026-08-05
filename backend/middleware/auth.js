@@ -28,4 +28,14 @@ const requireAuth = async (req, res, next) => {
   }
 };
 
-module.exports = requireAuth;
+const requireAdmin = (req, res, next) => {
+  if (req.user && req.user.type === 'admin') return next();
+  
+  if (req.user && req.user.type === 'custom') {
+    return res.status(403).json({ error: 'Forbidden: Admin access required' });
+  }
+
+  return next();
+};
+
+module.exports = { requireAuth, requireAdmin };

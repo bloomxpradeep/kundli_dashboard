@@ -187,16 +187,11 @@ export default function AllocateCreditModal({
                     key={amt}
                     type="button"
                     onClick={() => {
-                      if (stepSize === amt) {
-                        setStepSize(null);
-                      } else {
-                        setStepSize(amt);
-                        setCreditAmount(Number(creditAmount || 0) + amt);
-                      }
+                      setCreditAmount(amt);
                     }}
                     disabled={submittingCredit}
                     className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all border ${
-                      stepSize === amt 
+                      Number(creditAmount) === amt 
                         ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm' 
                         : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50 hover:text-neutral-900 hover:border-neutral-300'
                     }`}
@@ -208,7 +203,7 @@ export default function AllocateCreditModal({
                 <div className="flex bg-neutral-100 rounded-lg p-0.5 ml-1 border border-neutral-200 shadow-sm shrink-0">
                   <button
                     type="button"
-                    onClick={() => setCreditAmount(Math.max(0, Number(creditAmount || 0) - (stepSize || 1)))}
+                    onClick={() => setCreditAmount(Math.max(0, Number(creditAmount || 0) - 50))}
                     disabled={submittingCredit}
                     className="p-1.5 text-neutral-600 hover:bg-white hover:text-neutral-900 hover:shadow-sm rounded-md transition-all cursor-pointer"
                   >
@@ -216,7 +211,7 @@ export default function AllocateCreditModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setCreditAmount(Number(creditAmount || 0) + (stepSize || 1))}
+                    onClick={() => setCreditAmount(Number(creditAmount || 0) + 50)}
                     disabled={submittingCredit}
                     className="p-1.5 text-neutral-600 hover:bg-white hover:text-neutral-900 hover:shadow-sm rounded-md transition-all cursor-pointer"
                   >

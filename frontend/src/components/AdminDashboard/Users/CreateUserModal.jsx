@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import Modal from '../../Shared/Modal/Modal';
 
 export default function CreateUserModal({
@@ -15,15 +15,53 @@ export default function CreateUserModal({
   submittingUser
 }) {
   const [showPassword, setShowPassword] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+
+  useEffect(() => {
+    setConfirmAction(null);
+  }, [isOpen]);
+
+  // When modal closes, reset confirm state
+  const handleClose = () => {
+    setConfirmAction(null);
+    onClose();
+  };
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="Create New User Account"
       description="Public registration is closed. Admins can initialize logins below."
     >
-      <form onSubmit={handleCreateUser} className="space-y-4">
+      {confirmAction === 'create' ? (
+        <div className="flex flex-col items-center justify-center py-4 text-center animate-in fade-in zoom-in duration-200">
+          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-sm border border-emerald-100">
+            <UserPlus size={24} />
+          </div>
+          <h3 className="text-lg font-bold text-text-main mb-2">Confirm Creation</h3>
+          <p className="text-sm text-text-muted mb-6 px-4">
+            You are about to create a new staff account for <strong>{newFullName || 'this user'}</strong>. They will be able to log in immediately.
+          </p>
+          <div className="flex gap-3 w-full justify-center">
+            <button 
+              onClick={() => setConfirmAction(null)} 
+              className="px-4 py-2 text-xs font-semibold border border-border-subtle hover:bg-neutral-50 rounded-lg cursor-pointer transition text-text-muted focus:outline-none"
+              disabled={submittingUser}
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleCreateUser} 
+              className="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition cursor-pointer border-none shadow-sm flex items-center gap-2"
+              disabled={submittingUser}
+            >
+              {submittingUser ? 'Creating...' : 'Yes, Create User'}
+            </button>
+          </div>
+        </div>
+      ) : (
+      <form onSubmit={(e) => { e.preventDefault(); setConfirmAction('create'); }} className="space-y-4">
         <div>
           <label className="block text-xs font-semibold text-text-main uppercase tracking-wider mb-1.5" htmlFor="new-name">
             Full Name
@@ -97,6 +135,7 @@ export default function CreateUserModal({
           </button>
         </div>
       </form>
+      )}
     </Modal>
   );
 }

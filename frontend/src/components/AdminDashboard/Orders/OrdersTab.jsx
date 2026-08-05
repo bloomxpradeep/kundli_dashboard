@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, ExternalLink, FileText, History, XCircle, Download } from 'lucide-react';
+import { Search, ExternalLink, FileText, History, XCircle, Download, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
 import DatePicker from '../../Shared/DatePicker/DatePicker';
+import CustomSelect from '../../Shared/CustomSelect/CustomSelect';
 import * as XLSX from 'xlsx';
 
 export default function OrdersTab({
@@ -14,6 +15,35 @@ export default function OrdersTab({
 }) {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+  
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown size={12} className="text-neutral-400" />;
+    return sortOrder === 'asc' ? <ArrowUp size={12} className="text-text-main" /> : <ArrowDown size={12} className="text-text-main" />;
+  };
+
+  const handleResetFilters = () => {
+    setOrdersSearchQuery('');
+    setReportTypeFilter('all');
+    setStatusFilter('all');
+    setDateFilter('all');
+    setCustomStartDate('');
+    setCustomEndDate('');
+    setSortField('created_at');
+    setSortOrder('desc');
+    setCurrentPage(1);
+  };
   
   const [statusFilter, setStatusFilter] = useState('all');
   const [reportTypeFilter, setReportTypeFilter] = useState('all');
@@ -30,6 +60,25 @@ export default function OrdersTab({
     const types = kundliOrders.map(o => (o.report_tier || o.report_name)?.toLowerCase()).filter(Boolean);
     return [...new Set(types)].sort();
   }, [kundliOrders]);
+
+  const reportTypeOptions = React.useMemo(() => [
+    { value: 'all', label: 'All Report Types' },
+    ...uniqueReportTypes.map(type => ({ value: type, label: type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') }))
+  ], [uniqueReportTypes]);
+
+  const statusOptions = React.useMemo(() => [
+    { value: 'all', label: 'All Status' },
+    ...uniqueStatuses.map(status => ({ value: status, label: status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ') }))
+  ], [uniqueStatuses]);
+
+  const dateOptions = React.useMemo(() => [
+    { value: 'all', label: 'All Time' },
+    { value: 'today', label: 'Today' },
+    { value: '7days', label: 'Last 7 Days' },
+    { value: '30days', label: 'Last 30 Days' },
+    { value: '90days', label: 'Last 90 Days' },
+    ...(dateFilter === 'custom' ? [{ value: 'custom', label: 'Custom' }] : [])
+  ], [dateFilter]);
 
   React.useEffect(() => {
     setCurrentPage(1);
@@ -80,7 +129,41 @@ export default function OrdersTab({
       }
       return true;
     })
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    .sort((a, b) => {
+      let valA, valB;
+      switch (sortField) {
+        case 'order_id':
+          valA = (a.order_id || '').toLowerCase();
+          valB = (b.order_id || '').toLowerCase();
+          break;
+        case 'created_at':
+          valA = new Date(a.created_at).getTime();
+          valB = new Date(b.created_at).getTime();
+          break;
+        case 'customer':
+          valA = (a.name || '').toLowerCase();
+          valB = (b.name || '').toLowerCase();
+          break;
+        case 'report_type':
+          valA = (a.report_tier || a.report_name || '').toLowerCase();
+          valB = (b.report_tier || b.report_name || '').toLowerCase();
+          break;
+        case 'amount':
+          valA = Number(a.order_total_amount || a.amount_rupees || a.amount_paise || 0);
+          valB = Number(b.order_total_amount || b.amount_rupees || b.amount_paise || 0);
+          break;
+        case 'status':
+          valA = (a.kundli_status || a.status || '').toLowerCase();
+          valB = (b.kundli_status || b.status || '').toLowerCase();
+          break;
+        default:
+          valA = 0;
+          valB = 0;
+      }
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
   const currentOrders = filteredOrders.slice(
@@ -241,75 +324,36 @@ export default function OrdersTab({
 
             <div className="h-6 w-px bg-border-subtle hidden md:block" />
 
-            <div className="relative">
-              <select
-                value={reportTypeFilter}
-                onChange={(e) => setReportTypeFilter(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-[7px] bg-white border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 text-text-main cursor-pointer"
-              >
-                <option value="all">All Report Types</option>
-                {uniqueReportTypes.map(type => (
-                  <option key={type} value={type}>
-                    {type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ')}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted" />
-                </svg>
-              </div>
-            </div>
+            <CustomSelect
+              value={reportTypeFilter}
+              onChange={setReportTypeFilter}
+              options={reportTypeOptions}
+              className="w-[180px]"
+            />
 
             <div className="h-6 w-px bg-border-subtle hidden md:block" />
 
-            <div className="relative">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-[7px] bg-white border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 text-text-main cursor-pointer"
-              >
-                <option value="all">All Status</option>
-                {uniqueStatuses.map(status => (
-                  <option key={status} value={status}>
-                    {status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted" />
-                </svg>
-              </div>
-            </div>
+            <CustomSelect
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={statusOptions}
+              className="w-[140px]"
+            />
 
             <div className="h-6 w-px bg-border-subtle hidden md:block" />
 
-            <div className="relative">
-              <select
-                value={dateFilter}
-                onChange={(e) => {
-                  setDateFilter(e.target.value);
-                  if (e.target.value !== 'custom') {
-                    setCustomStartDate('');
-                    setCustomEndDate('');
-                  }
-                }}
-                className="appearance-none pl-3 pr-8 py-[7px] bg-white border border-border-subtle rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-neutral-300 text-text-main cursor-pointer"
-              >
-                <option value="all">All Time</option>
-                <option value="today">Today</option>
-                <option value="7days">Last 7 Days</option>
-                <option value="30days">Last 30 Days</option>
-                <option value="90days">Last 90 Days</option>
-                <option value="custom" hidden>Custom</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted" />
-                </svg>
-              </div>
-            </div>
+            <CustomSelect
+              value={dateFilter}
+              onChange={(val) => {
+                setDateFilter(val);
+                if (val !== 'custom') {
+                  setCustomStartDate('');
+                  setCustomEndDate('');
+                }
+              }}
+              options={dateOptions}
+              className="w-[140px]"
+            />
 
             <div className="flex items-center gap-2">
               <DatePicker
@@ -328,6 +372,17 @@ export default function OrdersTab({
                 align="right"
               />
             </div>
+
+            <div className="h-6 w-px bg-border-subtle hidden md:block" />
+
+            <button
+              onClick={handleResetFilters}
+              className="flex items-center justify-center gap-2 px-3 py-[7px] text-xs font-medium text-text-muted hover:text-text-main bg-white hover:bg-neutral-50 border border-border-subtle rounded-lg transition-colors whitespace-nowrap"
+              title="Reset Filters"
+            >
+              <RotateCcw size={14} />
+              Reset
+            </button>
           </div>
         </div>
         
@@ -335,12 +390,24 @@ export default function OrdersTab({
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-neutral-50 border-b border-border-subtle">
-                <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap">Order ID</th>
-                <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap">Date</th>
-                <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap">Customer Info</th>
-                <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap">Report Type</th>
-                <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap">Amount</th>
-                <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap">Status</th>
+                <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-neutral-100 transition-colors select-none" onClick={() => handleSort('order_id')}>
+                  <div className="flex items-center gap-1.5">Order ID <SortIcon field="order_id" /></div>
+                </th>
+                <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-neutral-100 transition-colors select-none" onClick={() => handleSort('created_at')}>
+                  <div className="flex items-center gap-1.5">Date <SortIcon field="created_at" /></div>
+                </th>
+                <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-neutral-100 transition-colors select-none" onClick={() => handleSort('customer')}>
+                  <div className="flex items-center gap-1.5">Customer Info <SortIcon field="customer" /></div>
+                </th>
+                <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-neutral-100 transition-colors select-none" onClick={() => handleSort('report_type')}>
+                  <div className="flex items-center gap-1.5">Report Type <SortIcon field="report_type" /></div>
+                </th>
+                <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-neutral-100 transition-colors select-none" onClick={() => handleSort('amount')}>
+                  <div className="flex items-center gap-1.5">Amount <SortIcon field="amount" /></div>
+                </th>
+                <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-neutral-100 transition-colors select-none" onClick={() => handleSort('status')}>
+                  <div className="flex items-center gap-1.5">Status <SortIcon field="status" /></div>
+                </th>
                 <th className="font-semibold text-text-main p-3 uppercase tracking-wider whitespace-nowrap text-right">Actions</th>
               </tr>
             </thead>

@@ -166,7 +166,6 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
   };
 
   const handleDeleteUser = async () => {
-    if (!window.confirm(`Are you sure you want to completely delete ${editLoginUsername}? This cannot be undone.`)) return;
 
     setSubmittingUser(true);
     try {
@@ -247,6 +246,7 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
 
   // Calculate Metrics
   const regularUsers = users.filter(u => u.role !== 'admin');
+  const lowCreditUsers = regularUsers.filter(u => u.credits_balance < 800);
 
   const paymentTransactions = transactions.filter(t => t.payment_id != null);
   const totalPaymentsCount = paymentTransactions.length;
@@ -256,12 +256,16 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  const totalCreditsAllocated = transactions
+  const totalCreditsAllocatedThisMonth = transactions
     .filter(t => {
       if (t.type !== 'assign') return false;
       const tDate = new Date(t.created_at);
       return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
     })
+    .reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+  const totalCreditsAllocatedAllTime = transactions
+    .filter(t => t.type === 'assign')
     .reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
   const archivedOrders = kundliOrders.filter(o => o.kundli_status === 'archived');
@@ -380,14 +384,21 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
           </div>
         </header>
 
-        {!hideLowCreditAlert && users.some(u => u.credits_balance < 800) && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-4 flex items-start gap-3 shadow-sm relative">
+        {!hideLowCreditAlert && lowCreditUsers.length > 0 && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-4 flex items-start gap-3 shadow-sm relative mb-4">
             <div className="p-1.5 bg-rose-100 rounded-lg text-rose-600 mt-0.5">
               <AlertTriangle size={18} />
             </div>
             <div className="pr-6">
-              <h4 className="text-sm font-bold text-rose-900">Low Credit Balance</h4>
-              <p className="text-xs text-rose-700 mt-1">The user credit balance has fallen below 800. Please ensure the account is recharged or allocated credits to avoid service interruption.</p>
+              <h4 className="text-sm font-bold text-rose-900">
+                Low Credit Balance for {lowCreditUsers.map(u => u.name || u.username).join(', ')}
+              </h4>
+              <p className="text-xs text-rose-700 mt-1">
+                {lowCreditUsers.length === 1 ? 'The credit balance has ' : 'These credit balances have '} 
+                fallen below 800. Please ensure 
+                {lowCreditUsers.length === 1 ? ' the account is ' : ' the accounts are '} 
+                allocated credits to avoid service interruption.
+              </p>
             </div>
             <button
               onClick={() => setHideLowCreditAlert(true)}
@@ -405,7 +416,8 @@ export default function AdminDashboard({ onLogout, addToast, profile }) {
             companySettings={companySettings}
             totalPaymentsCount={totalPaymentsCount}
             totalRevenue={totalRevenue}
-            totalCreditsAllocated={totalCreditsAllocated}
+            totalCreditsAllocatedThisMonth={totalCreditsAllocatedThisMonth}
+            totalCreditsAllocatedAllTime={totalCreditsAllocatedAllTime}
             totalReportsDelivered={totalReportsDelivered}
             getChartData={getChartData}
           />

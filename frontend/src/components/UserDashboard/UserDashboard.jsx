@@ -260,33 +260,54 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
           </div>
         </header>
 
-        {!hideLowCreditAlert && companySettings?.total_credits < 800 && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-4 flex items-start gap-3 shadow-sm relative">
-            <div className="p-1.5 bg-rose-100 rounded-lg text-rose-600 mt-0.5">
-              <AlertTriangle size={18} />
-            </div>
-            <div className="pr-6">
-              <h4 className="text-sm font-bold text-rose-900">Low Credit Balance</h4>
-              <p className="text-xs text-rose-700 mt-1">Your credit balance is below 800. Please recharge soon to ensure uninterrupted service.</p>
-            </div>
-            <button
-              onClick={() => setHideLowCreditAlert(true)}
-              className="absolute top-4 right-4 text-rose-400 hover:text-rose-700 transition"
-              title="Dismiss"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        )}
+        {(() => {
+          const now = new Date();
+          const currentMonth = now.getMonth();
+          const currentYear = now.getFullYear();
 
-        {activeTab === 'overview' && (
-          <OverviewTab
-            loading={loading}
-            companySettings={companySettings}
-            kundliOrders={kundliOrders}
-            setIsCreditPurchaseModalOpen={setIsCreditPurchaseModalOpen}
-          />
-        )}
+          const totalCreditsReceivedThisMonth = transactions
+            .filter(t => {
+              if (t.type !== 'assign' && !t.payment_id) return false;
+              const tDate = new Date(t.created_at);
+              return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+            })
+            .reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+          const totalCreditsReceivedAllTime = transactions
+            .filter(t => t.type === 'assign' || !!t.payment_id)
+            .reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+          return (
+            <>
+              {!hideLowCreditAlert && companySettings?.total_credits < 800 && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-4 flex items-start gap-3 shadow-sm relative mb-8">
+                  <div className="p-1.5 bg-rose-100 rounded-lg text-rose-600 mt-0.5">
+                    <AlertTriangle size={18} />
+                  </div>
+                  <div className="pr-6">
+                    <h4 className="text-sm font-bold text-rose-900">Low Credit Balance</h4>
+                    <p className="text-xs text-rose-700 mt-1">Your credit balance is below 800. Please recharge soon to ensure uninterrupted service.</p>
+                  </div>
+                  <button
+                    onClick={() => setHideLowCreditAlert(true)}
+                    className="absolute top-4 right-4 text-rose-400 hover:text-rose-700 transition"
+                    title="Dismiss"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+
+              {activeTab === 'overview' && (
+                <OverviewTab
+                  loading={loading}
+                  companySettings={companySettings}
+                  totalCreditsReceivedThisMonth={totalCreditsReceivedThisMonth}
+                  totalCreditsReceivedAllTime={totalCreditsReceivedAllTime}
+                  kundliOrders={kundliOrders}
+                  setIsCreditPurchaseModalOpen={setIsCreditPurchaseModalOpen}
+                />
+              )}
 
         {activeTab === 'orders' && (
           <OrdersTab
@@ -326,6 +347,9 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
             profile={profile}
           />
         )}
+            </>
+          );
+        })()}
       </main>
 
       <ProfileModal

@@ -3,6 +3,7 @@ import Login from './components/Login/Login';
 import AdminDashboard from './components/AdminDashboard/AdminDashboard';
 import UserDashboard from './components/UserDashboard/UserDashboard';
 import Toast from './components/Shared/Toast/Toast';
+import { useIdleTimeout } from './hooks/useIdleTimeout';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -66,12 +67,17 @@ export default function App() {
     addToast('Signed in successfully!', 'success');
   };
 
-  const handleLogout = () => {
+  const handleLogout = (message = 'Signed out successfully!', type = 'success') => {
     localStorage.removeItem('auth_token');
     setSession(null);
     setProfile(null);
-    addToast('Signed out successfully!', 'success');
+    addToast(message, type);
   };
+
+  // Secure Inactivity Timeout (only active when logged in)
+  useIdleTimeout(() => {
+    handleLogout('Session expired due to 15 minutes of inactivity. Please log in again.', 'warning');
+  }, !!session);
 
   if (loading) {
     return (

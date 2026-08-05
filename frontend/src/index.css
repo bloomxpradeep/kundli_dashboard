@@ -74,7 +74,7 @@ body {
   animation: spin 1s linear infinite;
 }
 
-/* Custom Scrollbar for tables */
+/* Custom Scrollbar for tables and specific components */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -85,10 +85,29 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #E5E5E5;
+  background: #C1C1C1;
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #D4D4D4;
+  background: #A3A3A3;
+}
+
+/* Global Browser Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C1C1C1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A3A3A3;
 }
