@@ -129,7 +129,7 @@ export default function OrdersTab({
               <FileText size={14} />
             </div>
           </div>
-          <div className="text-2xl font-bold text-text-main">{loading ? '…' : kundliOrders.length}</div>
+          <div className="text-2xl font-bold text-text-main">{loading ? '…' : filteredOrders.length}</div>
           <span className="text-[10px] text-text-muted">All time orders placed</span>
         </div>
 
@@ -142,7 +142,7 @@ export default function OrdersTab({
             </div>
           </div>
           <div className="text-2xl font-bold text-emerald-600">
-            {loading ? '…' : kundliOrders.filter(o => (o.kundli_status || o.status)?.toLowerCase() === 'archived').length}
+            {loading ? '…' : filteredOrders.filter(o => (o.kundli_status || o.status)?.toLowerCase() === 'archived').length}
           </div>
           <span className="text-[10px] text-text-muted">Archived orders</span>
         </div>
@@ -156,7 +156,7 @@ export default function OrdersTab({
             </div>
           </div>
           <div className="text-2xl font-bold text-red-600">
-            {loading ? '…' : kundliOrders.filter(o => {
+            {loading ? '…' : filteredOrders.filter(o => {
               const status = (o.kundli_status || o.status)?.toLowerCase();
               if (!['failed', 'drive_failed', 'failed_permanent'].includes(status)) return false;
               const createdAt = new Date(o.created_at);
@@ -394,31 +394,7 @@ export default function OrdersTab({
 
         {/* Pagination footer */}
         {(() => {
-          const filtered = kundliOrders.filter(order => {
-            const s = searchQuery.toLowerCase();
-            const matchesSearch = (
-              (order.name && order.name.toLowerCase().includes(s)) ||
-              (order.email && order.email.toLowerCase().includes(s)) ||
-              (order.phone && order.phone.includes(s)) ||
-              (order.order_id && order.order_id.toLowerCase().includes(s)) ||
-              (order.order_total_amount_raw && order.order_total_amount_raw.includes(s))
-            );
-            if (!matchesSearch) return false;
-            if (statusFilter !== 'all' && (order.kundli_status || order.status) !== statusFilter) return false;
-            if (dateFilter === 'all') return true;
-            const d = new Date(order.created_at);
-            const now = new Date();
-            if (dateFilter === 'today') return d.toDateString() === now.toDateString();
-            if (dateFilter === '7days') { const x = new Date(now); x.setDate(now.getDate() - 7); return d >= x; }
-            if (dateFilter === '30days') { const x = new Date(now); x.setDate(now.getDate() - 30); return d >= x; }
-            if (dateFilter === '90days') { const x = new Date(now); x.setDate(now.getDate() - 90); return d >= x; }
-            if (dateFilter === 'custom') {
-              if (customStartDate && customEndDate) { const s2 = new Date(customStartDate); s2.setHours(0, 0, 0, 0); const e = new Date(customEndDate); e.setHours(23, 59, 59, 999); return d >= s2 && d <= e; }
-              if (customStartDate) { const s2 = new Date(customStartDate); s2.setHours(0, 0, 0, 0); return d >= s2; }
-              if (customEndDate) { const e = new Date(customEndDate); e.setHours(23, 59, 59, 999); return d <= e; }
-            }
-            return true;
-          });
+          const filtered = filteredOrders;
           const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
           if (totalPages <= 1) return null;
           return (

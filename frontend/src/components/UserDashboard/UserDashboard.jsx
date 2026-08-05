@@ -323,6 +323,7 @@ export default function UserDashboard({ user, profile: initialProfile, onLogout,
             companySettings={companySettings}
             transactions={transactions}
             setIsCreditPurchaseModalOpen={setIsCreditPurchaseModalOpen}
+            profile={profile}
           />
         )}
       </main>

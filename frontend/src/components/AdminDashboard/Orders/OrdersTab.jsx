@@ -150,7 +150,7 @@ export default function OrdersTab({
               <FileText size={14} />
             </div>
           </div>
-          <div className="text-2xl font-bold text-text-main">{kundliOrders.length}</div>
+          <div className="text-2xl font-bold text-text-main">{filteredOrders.length}</div>
           <span className="text-[10px] text-text-muted">All time orders placed</span>
         </div>
 
@@ -163,7 +163,7 @@ export default function OrdersTab({
             </div>
           </div>
           <div className="text-2xl font-bold text-emerald-600">
-            {kundliOrders.filter(o => (o.kundli_status || o.status)?.toLowerCase() === 'archived').length}
+            {filteredOrders.filter(o => (o.kundli_status || o.status)?.toLowerCase() === 'archived').length}
           </div>
           <span className="text-[10px] text-text-muted">Archived orders</span>
         </div>
@@ -179,14 +179,14 @@ export default function OrdersTab({
           <div className="flex flex-wrap items-center gap-4 mt-1">
             <div className="flex flex-col">
               <span className="text-2xl font-bold text-red-600 leading-none">
-                {kundliOrders.filter(o => ['failed', 'drive_failed', 'failed_permanent'].includes((o.kundli_status || o.status)?.toLowerCase())).length}
+                {filteredOrders.filter(o => ['failed', 'drive_failed', 'failed_permanent'].includes((o.kundli_status || o.status)?.toLowerCase())).length}
               </span>
               <span className="text-[10px] text-text-muted mt-1 uppercase tracking-wider">Overall</span>
             </div>
             <div className="h-8 w-px bg-border-subtle"></div>
             <div className="flex flex-col">
               <span className="text-2xl font-bold text-red-500 leading-none">
-                {kundliOrders.filter(o => {
+                {filteredOrders.filter(o => {
                   const status = (o.kundli_status || o.status)?.toLowerCase();
                   if (!['failed', 'drive_failed', 'failed_permanent'].includes(status)) return false;
                   return (new Date() - new Date(o.created_at)) <= 24 * 60 * 60 * 1000;
