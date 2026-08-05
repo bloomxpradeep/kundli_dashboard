@@ -134,14 +134,14 @@ export default function AllocateCreditModal({
                     </div>
                   </>
                 )}
-                
-                {errors.targetUserId && (
-                  <div className="flex items-center gap-1.5 mt-2 text-red-500 animate-in fade-in slide-in-from-top-1">
-                    <AlertCircle size={13} strokeWidth={2.5} />
-                    <span className="text-[11px] font-semibold">{errors.targetUserId}</span>
-                  </div>
-                )}
               </div>
+              
+              {errors.targetUserId && (
+                <div className="flex items-center gap-1.5 mt-2 text-red-500 animate-in fade-in slide-in-from-top-1">
+                  <AlertCircle size={13} strokeWidth={2.5} />
+                  <span className="text-[11px] font-semibold">{errors.targetUserId}</span>
+                </div>
+              )}
             </div>
             
             <div>
